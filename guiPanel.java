@@ -180,19 +180,18 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		area3.setColumns(30);
 		area3.setRows(10);
 		area3.setEditable(true);
+
+
+	    Console console = new Console();
+	    console.setEditable(false);
+	    Editor editor = new Editor();
 		
-		JScrollPane scrollPane = new JScrollPane(area);
+		JScrollPane scrollPane = new JScrollPane(editor);
 		
 		JScrollPane scrollPane2 = new JScrollPane(area2);
 
 		JScrollPane scrollPane3 = new JScrollPane(area3);
-		
-
-		
-		scrollPane.setBorder(BorderFactory.createLineBorder(Color.green));
-		scrollPane2.setBorder(BorderFactory.createLineBorder(Color.red));
-		scrollPane3.setBorder(BorderFactory.createLineBorder(Color.blue));
-		
+						
 		tabbedPane.addTab("Program", null);
 		tabbedPane.add(scrollPane);
 		
@@ -202,9 +201,6 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		tabbedPane3.addTab("States", null);
 		tabbedPane.add(scrollPane3);
 
-    Console console = new Console();
-    console.setEditable(false);
-    Editor editor = new Editor();
 
 
     fileMenu.add(new OpenAction(editor));
@@ -220,7 +216,7 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		splitPane2.setDividerLocation(200);
 		
 		// JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, splitPane2);
-		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, editor, splitPane2);
+		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, splitPane2);
 
 		splitPane.setOneTouchExpandable(true);
 		splitPane.setDividerLocation(450);
