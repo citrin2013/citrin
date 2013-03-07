@@ -41,7 +41,7 @@ import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.StyledEditorKit;
 import javax.swing.text.JTextComponent;
 import javax.swing.undo.AbstractUndoableEdit;
-
+import javax.swing.undo.*;
 public class guiPanel extends JPanel { // implements ActionListener {
   
   // C++ source file this application has the focus on currently
@@ -49,7 +49,6 @@ public class guiPanel extends JPanel { // implements ActionListener {
   String currentCppSourceFile;
 
 	private static final long serialVersionUID = 1L;
-	
 	//JMenuItems for File
 	// private JMenuItem newFile;
 	// private JMenuItem openFile;
@@ -62,8 +61,6 @@ public class guiPanel extends JPanel { // implements ActionListener {
 	private JMenuItem undo;
 	private JMenuItem redo;
 	
-	private Controller controller;
-	
 	//TODO: need functionality to keep track of what action was just done
 	
 	//Menu Items for Help
@@ -72,7 +69,6 @@ public class guiPanel extends JPanel { // implements ActionListener {
 	
 	//constructor
 	public guiPanel(){
-		
 		JMenuBar topBar = new JMenuBar(); //menu bar to hold the menus
 		
 		JMenu fileMenu = new JMenu("File");
@@ -134,6 +130,7 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		editMenu.add(undo);
 		editMenu.add(redo);
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.cutAction));
+
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.copyAction));
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.pasteAction));
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.selectAllAction));
@@ -180,21 +177,25 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		area3.setColumns(30);
 		area3.setRows(10);
 		area3.setEditable(true);
+	    Console console = new Console();
+	    console.setEditable(false);
+	    Editor editor = new Editor();
+	    
 		
-		JScrollPane scrollPane = new JScrollPane(area);
+		JScrollPane scrollPane = new JScrollPane(editor);
 		
 		JScrollPane scrollPane2 = new JScrollPane(area2);
 
 		JScrollPane scrollPane3 = new JScrollPane(area3);
 		
 
+		//Provide minimum sizes for the two components in the split pane
+		Dimension minimumSize = new Dimension(100, 50);
+		scrollPane.setMinimumSize(minimumSize);
+		scrollPane2.setMinimumSize(minimumSize);
+		scrollPane3.setMinimumSize(minimumSize);
 		
-		scrollPane.setBorder(BorderFactory.createLineBorder(Color.green));
-		scrollPane2.setBorder(BorderFactory.createLineBorder(Color.red));
-		scrollPane3.setBorder(BorderFactory.createLineBorder(Color.blue));
-		
-		tabbedPane.addTab("Program", null);
-		tabbedPane.add(scrollPane);
+
 		
 		tabbedPane2.addTab("Output", null);
 		tabbedPane.add(scrollPane2);
@@ -202,16 +203,14 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		tabbedPane3.addTab("States", null);
 		tabbedPane.add(scrollPane3);
 
-    Console console = new Console();
-    console.setEditable(false);
-    Editor editor = new Editor();
 
+//	tabbedPane.addTab("Program", null);
+	//tabbedPane.add(scrollPane,);
 
     fileMenu.add(new OpenAction(editor));
     fileMenu.add(new SaveAction("Save", editor, true));
     fileMenu.add(new SaveAction("SaveAs", editor, false));
     fileMenu.add(new RunAllAction(console));
-    fileMenu.add(new StepAction(console));
     fileMenu.add(new ExitAction());
 		
 		JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane3, console);
@@ -220,16 +219,11 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		splitPane2.setDividerLocation(200);
 		
 		// JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, splitPane2);
-		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, editor, splitPane2);
+		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, splitPane2);
 
 		splitPane.setOneTouchExpandable(true);
 		splitPane.setDividerLocation(450);
 		
-		//Provide minimum sizes for the two components in the split pane
-		Dimension minimumSize = new Dimension(100, 50);
-		scrollPane.setMinimumSize(minimumSize);
-		scrollPane2.setMinimumSize(minimumSize);
-		scrollPane3.setMinimumSize(minimumSize);
 
 
 		myPanel.setLayout(new BorderLayout());
@@ -242,8 +236,6 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		add("Center", myPanel);
 		add("North", topBar);
 		setLocation(0,0);
-		
-		controller = new Controller(console);
 		
 		// newFile.addActionListener(this);
 		// saveAsFile.addActionListener(this);
@@ -439,7 +431,6 @@ public class guiPanel extends JPanel { // implements ActionListener {
   // An action that runs the interpreter on all the contents of the current cpp source file
   class RunAllAction extends AbstractAction {
     JTextComponent display;
-    String interpretation = "";
 
     public RunAllAction(JTextComponent display) {
       super("RunAll");
@@ -448,55 +439,27 @@ public class guiPanel extends JPanel { // implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-	  Interpreter i;
       // run interpreter on currentCppSourceFile
-    	
-      // Start interpreter in new thread
-      // TODO: hmmmm is this the best way
-      synchronized(controller){
-          if(!controller.isInterpreting()){
-        	  controller.clearConsole();
-        	  controller.setInterpretingStart();
-              new Thread(i = new Interpreter(controller,currentCppSourceFile,-1)).start();
-              controller.addInterpreter(i);
-          }
+      Interpreter interpreter = null;
+      interpreter = new Interpreter();
+      String interpretation = "";
+      try { 
+        interpretation = interpreter.runAll(currentCppSourceFile);
+      } catch (IOException ex) {
+        ex.printStackTrace();
       }
 
-    	
-
+      // update display with the result of the interpretation
+      Document doc = null;
+      doc = new PlainDocument();
+      try { 
+        doc.insertString(0, interpretation, null);
+      } catch ( BadLocationException badloc ) {
+        System.out.println( "Bad offset requested : " + badloc.offsetRequested() );
+      }
+      display.setDocument(doc);
     }
     
   }
-
-  
-  class StepAction extends AbstractAction {
-	    JTextComponent display;
-	    String interpretation = "";
-
-	    public StepAction(JTextComponent display) {
-	      super("Step");
-	      this.display = display;
-	    }
-
-	    @Override
-	    public void actionPerformed(ActionEvent e) {
-	      // run interpreter on currentCppSourceFile
-	    	
-	      Interpreter i;
-	      synchronized(controller){
-	          if(!controller.isInterpreting()){
-	        	  controller.clearConsole();
-	        	  controller.setInterpretingStart();
-	              new Thread(i = new Interpreter(controller,currentCppSourceFile,1)).start();
-	              controller.addInterpreter(i);
-	          }
-	          else{
-	        	  controller.addSteps(1);
-	          }
-	        }
-
-	    }
-	    
-	  }
-  
+	
 }
