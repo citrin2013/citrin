@@ -1,5 +1,6 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
@@ -35,14 +36,12 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.JToolBar;
+import javax.swing.JToolTip;
 import javax.swing.UIManager;
 import javax.swing.text.*;
-import javax.swing.text.DefaultEditorKit;
-import javax.swing.text.StyledEditorKit;
-import javax.swing.text.JTextComponent;
 import javax.swing.undo.AbstractUndoableEdit;
 
-public class guiPanel extends JPanel { // implements ActionListener {
+public class guiPanel extends JPanel  implements ActionListener {
   
   // C++ source file this application has the focus on currently
   // When tab focus changes this variable should refer to the file the tab contains
@@ -61,6 +60,9 @@ public class guiPanel extends JPanel { // implements ActionListener {
 	//Menu items for Edit
 	private JMenuItem undo;
 	private JMenuItem redo;
+	private JButton pasteButton;
+	
+//	private JTextArea area;
 	
 	private Controller controller;
 	
@@ -79,6 +81,9 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		JMenu editMenu = new JMenu("Edit");
 		//JMenu styleMenu = new JMenu("Style");
 		JMenu helpMenu = new JMenu("Help");
+		
+		
+
 		
 		//menu items for the menu "File"
 		// newFile = new JMenuItem("New");
@@ -129,6 +134,10 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		area.setRows(10);
 		area.setEditable(true);
 		
+		JToolBar editToolBar = new JToolBar();
+		
+
+		
 		//add edit buttons to menu
 			// TODO: get undo/redo working, need undomanager and listner; look at swing.undo
 		editMenu.add(undo);
@@ -143,7 +152,7 @@ public class guiPanel extends JPanel { // implements ActionListener {
 	    a = area.getActionMap().get(DefaultEditorKit.cutAction);
 	    a.putValue(Action.SMALL_ICON, new ImageIcon("cut.gif"));
 	    a.putValue(Action.NAME, "Cut");
-
+	    
 	    a = area.getActionMap().get(DefaultEditorKit.copyAction);
 	    a.putValue(Action.SMALL_ICON, new ImageIcon("copy.gif"));
 	    a.putValue(Action.NAME, "Copy");
@@ -154,8 +163,26 @@ public class guiPanel extends JPanel { // implements ActionListener {
 
 	    a = area.getActionMap().get(DefaultEditorKit.selectAllAction);
 	    a.putValue(Action.NAME, "Select All");
-		
-		
+	    
+	 
+	    Action copyAction = new DefaultEditorKit.CopyAction();
+	    copyAction.putValue(Action.SMALL_ICON, new ImageIcon("copy.gif"));
+	    copyAction.putValue(Action.NAME, ""); 
+	    
+	    Action pasteAction = new DefaultEditorKit.PasteAction();
+	    pasteAction.putValue(Action.SMALL_ICON, new ImageIcon("paste.gif"));
+	    pasteAction.putValue(Action.NAME, "");
+	    
+	    Action cutAction = new DefaultEditorKit.CutAction();
+	    cutAction.putValue(Action.SMALL_ICON, new ImageIcon("cut.gif"));
+	    cutAction.putValue(Action.NAME, "");
+	    
+  
+
+		editToolBar.add(cutAction);
+		editToolBar.add(copyAction);
+		editToolBar.add(pasteAction);
+
 	    // To Do: Get style menu working
 	    /*Action action = new StyledEditorKit.BoldAction();
         action.putValue(Action.NAME, "Bold");
@@ -233,18 +260,19 @@ public class guiPanel extends JPanel { // implements ActionListener {
 		setLayout(new BorderLayout());
 		setPreferredSize(new Dimension(800, 600));
 		
-		myPanel.add(splitPane);
+		myPanel.add("North", editToolBar);
+		myPanel.add("Center",splitPane);
 		myPanel.setLocation(0, 0);
 		add("Center", myPanel);
 		add("North", topBar);
+
 		setLocation(0,0);
 		
 		controller = new Controller(console);
 		
 		// newFile.addActionListener(this);
 		// saveAsFile.addActionListener(this);
-		// exit.addActionListener(this);
-
+		 //exit.addActionListener(this);
 	}
 	
 
@@ -304,14 +332,14 @@ public class guiPanel extends JPanel { // implements ActionListener {
 	}
   */
 
-  /*
-	@Override
+  
+	/*@Override
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == exit){
 			System.exit(0);
 		}
-	}
-  */
+	}*/
+  
 
 // ----------------------------------------------------------------------------
 // Callback Classes 
@@ -342,6 +370,7 @@ public class guiPanel extends JPanel { // implements ActionListener {
     }
 
   }
+
 
   // An action that saves the document to a file : Supports Save and SaveAs actoins 
   class SaveAction extends AbstractAction {
@@ -494,5 +523,12 @@ public class guiPanel extends JPanel { // implements ActionListener {
 	    }
 	    
 	  }
+
+
+@Override
+public void actionPerformed(ActionEvent arg0) {
+	// TODO Auto-generated method stub
+	
+}
   
 }
