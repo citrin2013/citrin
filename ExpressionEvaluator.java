@@ -4,6 +4,7 @@ public class ExpressionEvaluator {
 	private Interpreter interpreter = null;
 	private Lexer lexer = null;	
 	private Lexer.Token token;
+	private boolean checkOnly = false;
 	
 	public static final String EQ = "==";
 	public static final String LT = "<";	
@@ -23,16 +24,12 @@ public class ExpressionEvaluator {
 	}
 	
 	//entry point into parser
-	public var_type eval_exp()  throws StopException {
-	  var_type value;
+	public var_type eval_exp()  throws StopException, SyntaxError {
+	  checkOnly = false;
+	  var_type value = null;
 	  token = lexer.get_token();
 	  if(token.value==null) {
-	    interpreter.sntx_err(/*NO_EXP*/);
-	    return new var_type();
-	  }
-	  if(token.value.charAt(0) == ';') {
-		interpreter.sntx_err();
-	    /* TODO empty expression returns 0, probably should do something else? */
+	    interpreter.sntx_err("No expression");
 	    return new var_type();
 	  }
 	  value = eval_exp0();
@@ -41,8 +38,8 @@ public class ExpressionEvaluator {
 	}
 
 	// process an assignment expression
-	private var_type eval_exp0()  throws StopException {
-	  var_type value, result;
+	private var_type eval_exp0()  throws StopException, SyntaxError {
+	  var_type value, result = new var_type();
 	  String temp; //holds name of var recieving assignment
 	  token_type temp_tok;
 
@@ -52,9 +49,25 @@ public class ExpressionEvaluator {
 	      temp_tok = token.type;
 	      token = lexer.get_token();
 	      if(token.value.charAt(0) == '=') { /* is an assignment */
-	        token = lexer.get_token();
+
+	    	if(!interpreter.is_var(temp)){
+		        throw new SyntaxError("Variable: "+temp+" has not been defined", lexer.getLineNum(), lexer.getColumnNum());
+		    }
+	    	token = lexer.get_token();
+
 	        value = eval_exp0(); /* get value to assign */
-	        result = interpreter.assign_var(temp, value); /* assign the value */
+	        var_type v = interpreter.find_var(temp);
+	        if(!v.canAssign(value)){
+		        throw new SyntaxError("a "+v.v_type.toString().toLowerCase()+" cannot be assigned a value of type "
+		        		+value.v_type.toString().toLowerCase(),lexer.getLineNum(), lexer.getColumnNum());
+	        }
+	        
+	        if(checkOnly){
+	        	result.v_type = v.v_type;
+	        }
+	        else{
+		        result = interpreter.assign_var(temp, value); /* assign the value */
+	        }
 	        return result;
 	      }
 	      else { /* not an assignment */
@@ -70,8 +83,8 @@ public class ExpressionEvaluator {
 	
 	
 	// process relational operators
-	private var_type eval_exp1()  throws StopException {
-	  var_type value, result;
+	private var_type eval_exp1()  throws StopException, SyntaxError {
+	  var_type value, result = new var_type();
 	  var_type partial_value;
 	  String op;
 
@@ -83,7 +96,12 @@ public class ExpressionEvaluator {
 
 		  token = lexer.get_token();
 		  partial_value = eval_exp2();
-		  result = value.relationalOperator(partial_value, op);
+		  if(checkOnly){
+			  result.v_type = keyword.BOOL;
+		  }
+		  else{
+			  result = value.relationalOperator(partial_value, op);			  
+		  }
 		  
 	  }
 	  else{
@@ -93,32 +111,44 @@ public class ExpressionEvaluator {
 	  return result;
 	}
 
+	
+	
 	// add or subtract two terms
-	private var_type eval_exp2()  throws StopException {
+	private var_type eval_exp2()  throws StopException, SyntaxError {
 	  var_type value, partial_value;
-	  char op = '\0';
+	  String op = "";
 	  var_type result;
 
 	  value = eval_exp3();
 	  result = new var_type(value);
-	  while((op=token.value.charAt(0))=='+' || op=='-' ){
+	  op = token.value;
+	  while(op.equals("+") || op.equals("-") ){
 	    token = lexer.get_token();
 	    partial_value = eval_exp3();
-	    switch(op){
-	      case '-':
-	    	result = value.sub(partial_value);
-	        break;
-	      case '+':
-	      	result = value.add(partial_value);
-	        break;
-	    }	
+	    if(op.equals("-")){
+	    	if(checkOnly){
+	    		result = value.getReturnTypeFromBinaryOp(op, partial_value);
+	    	}
+	    	else{
+		    	result = value.sub(partial_value);		    		
+	    	}
+	    }
+	    if(op.equals("+")){
+	    	if(checkOnly){
+	    		result = value.getReturnTypeFromBinaryOp(op, partial_value);
+	    	}
+	    	else{
+		      	result = value.add(partial_value);	
+	    	}
+	    }
+	    op = token.value;
 	  }
 	  return result;
 	}
 
 
 	// multiply or divide two factors
-	private var_type eval_exp3()  throws StopException {
+	private var_type eval_exp3()  throws StopException, SyntaxError {
 	  var_type value, partial_value;
 	  var_type result;
 	  char op;
@@ -130,13 +160,22 @@ public class ExpressionEvaluator {
 	    partial_value = eval_exp4();
 	    switch(op){
 	      case '*':
-	    	result = value.mul(partial_value);
+			if(checkOnly)
+				result = value.getReturnTypeFromBinaryOp("*",value);
+			else
+				result = value.mul(partial_value);
 	        break;
 	      case '/':
-	    	result = value.div(partial_value);
+			if(checkOnly)
+				result = value.getReturnTypeFromBinaryOp("/",value);
+			else
+				result = value.div(partial_value);
 	        break;
 	      case '%':
-	      	result = value.mod(partial_value);
+			if(checkOnly)
+				result = value.getReturnTypeFromBinaryOp("%",value);
+			else
+				result = value.mod(partial_value);
 	        break;
 	    }
 	  }
@@ -146,7 +185,7 @@ public class ExpressionEvaluator {
 	
 	
 	//evaluate unary plus or minus
-	private var_type eval_exp4()  throws StopException {
+	private var_type eval_exp4()  throws StopException, SyntaxError {
 	  var_type value, result;
 	  char op = '\0';
 
@@ -162,12 +201,12 @@ public class ExpressionEvaluator {
 	  return result;
 	}
 
-	private var_type eval_exp5()  throws StopException {
+	private var_type eval_exp5()  throws StopException, SyntaxError {
 	  var_type value;
 	  if((token.value.charAt(0) == '(')) {
 	    token = lexer.get_token();
 	    value = eval_exp0(); // get subexpression
-	    if(token.value.charAt(0) != ')') interpreter.sntx_err(/*parenthesis expected*/);
+	    if(token.value.charAt(0) != ')') interpreter.sntx_err("expected )");
 	    token = lexer.get_token();
 	  }
 	  else
@@ -176,7 +215,7 @@ public class ExpressionEvaluator {
 	  return value;
 	}
 
-	private var_type atom() throws StopException {
+	private var_type atom() throws StopException, SyntaxError {
 	  //int i=0;
 	  var_type value = new var_type();
 	  switch(token.type){
@@ -190,7 +229,12 @@ public class ExpressionEvaluator {
 	      else*/ 
 	    	//check if function
 	    	if(interpreter.isUserFunc(token.value)) { // call user defined function
-	    	  value = interpreter.call(token.value);
+	    	  if(checkOnly){
+	    		  value = interpreter.checkCall(token.value);
+	    	  }
+	    	  else{
+		    	  value = interpreter.call(token.value);	    		  
+	    	  }
 	      	}
 	      else value = interpreter.find_var(token.value); // get var's value
 	      token = lexer.get_token();
@@ -210,20 +254,37 @@ public class ExpressionEvaluator {
 
 	    case CHAR: //check if character constant
 	    	value.v_type = keyword.CHAR;
-	    	value.value = (int) token.value.charAt(0);
+	    	value.value = (int) token.value.charAt(1);
 	    	token = lexer.get_token();
 	    	return value;
 	      
 	    case DELIMITER: 
 	      //process empty expression return 0 TODO: verify this works 
 	      if(token.value.charAt(0) == ')') return value; 
-	      else interpreter.sntx_err();
+	      else interpreter.sntx_err("Bad delimiter: '" +token.value+ "' in expression");
 	    default:
-	      interpreter.sntx_err();
+	      interpreter.sntx_err("Unkown Error, CITRIN might not recognize this: "+token.value);
 	      }
 	  return value;
 	  }
 	
 	
+	//entry point into parser
+	public var_type check_expr() throws SyntaxError {
+	  checkOnly = true;
+	  var_type value = null;
+	  token = lexer.get_token();
+	  if(token.value==null) {
+	    throw new SyntaxError("No Expression", lexer.getLineNum(), lexer.getColumnNum());
+	  }
+	  try {
+		value = eval_exp0();
+	} catch (StopException e) {
+		// Stop Exceptions cant be thrown during syntax check
+		e.printStackTrace();
+	}
+	  lexer.putback(); /* return last token read to input stream */
+	  return value;
+	}
 	
 }

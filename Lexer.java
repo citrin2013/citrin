@@ -1,9 +1,16 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.Math;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
 
 public class Lexer {
@@ -15,6 +22,7 @@ public class Lexer {
   //private token_type type = token_type.TEMP;
   private char prog[] = null;
   public int index = 0;
+  ArrayList<Integer> listOfEndlines;
   //public keyword tok = null;
   
   public commands table[] = { /* Commands must be entered in lowercase in this table?*/
@@ -31,26 +39,42 @@ public class Lexer {
 		    new commands("float", keyword.FLOAT),
 		    new commands("bool", keyword.BOOL),
 		    new commands("double", keyword.DOUBLE),
+		    new commands("void", keyword.VOID),
 		    new commands("", keyword.END) /* mark end of table */
 		  };
   
-  void loadSourceFile( String fileName ){
-	  
-	  String temp = null;
-	  
-	    try {
-	        temp = new Scanner( new File(fileName) ).useDelimiter("\\A").next();
-	      } catch (IOException e) {
-	        e.printStackTrace();
+  synchronized void loadSourceFile( String fileName ){
+
+	   try
+	  {
+	      BufferedReader br = new BufferedReader(new FileReader(fileName));
+	      StringBuffer str = new StringBuffer();
+	      String line = br.readLine();
+	      while (line != null)
+	      {
+	          str.append(line);
+	          str.append("\n");
+	          line = br.readLine();
 	      }
-	    //TODO need to add a check if temp was loaded successfully
-	    prog = temp.toCharArray();
+	      br.close();
+	      prog = str.toString().toCharArray();
+	  } catch (IOException e){
+		  e.printStackTrace();
+	  }
+	   
+	  listOfEndlines = new ArrayList<Integer>(); 
+	  for(int i=0;i<prog.length;i++){
+		  if(prog[i] =='\n' || prog[i] =='\r')
+			  listOfEndlines.add(i);
+	  }
+	   
   }
   
   
   /* Get a token. */
   //TODO make sure wont go outside boundary
-  public Token get_token() {
+  //TODO CHANGE so that chars have '' around them and strings ""
+  public Token get_token() throws SyntaxError {
 	  
     //token_type type = token_type.TEMP; //replaced with global
 	Token token = new Token();
@@ -64,8 +88,10 @@ public class Lexer {
     while(!done){
     	done = true;
     	//skip white space
-        while(index<prog.length && Character.isWhitespace(prog[index])) index++;    	
-    	
+        while(index<prog.length && Character.isWhitespace(prog[index])){
+        	index++;    		
+        }
+        
         // skip comments
         if( index+1 < prog.length && prog[index] == '/' && prog[index+1] == '*'){
           done = false;
@@ -139,6 +165,8 @@ public class Lexer {
     if(prog[index]=='"') { /* quoted string */
       index++;
       StringBuffer buf = new StringBuffer();
+
+      buf.append('"');      //start with quote
       while(index<prog.length && prog[index]!='"' && prog[index]!='\r' && prog[index]!='\n'){
     	
     	if(prog[index]=='\\'){ //check for escape char
@@ -152,9 +180,10 @@ public class Lexer {
     	}
         index++;
       }
-      if(prog[index] == '\r' || prog[index] == '\n' || index>=prog.length ) 
-        sntx_err(/*expecting "*/);//call syntax error
+      if( index>=prog.length || prog[index] != '"' ) 
+        sntx_err("Missing terminating \" ");//call syntax error
 
+      buf.append('"'); //add quote to finish string
       index++;
       token.value = buf.toString();
       token.type = token_type.STRING;
@@ -165,6 +194,7 @@ public class Lexer {
     if(prog[index]=='\'') { /* character bounded by ' */
     	index++;
         StringBuffer buf = new StringBuffer();
+        buf.append('\''); //start with single quote
         while(index<prog.length && prog[index]!='\'' && prog[index]!='\r' && prog[index]!='\n'){
       	
       	if(prog[index]=='\\'){ //check for escape char
@@ -178,9 +208,11 @@ public class Lexer {
       	}
           index++;
         }
-        if(prog[index] == '\r' || prog[index] == '\n' || index>=prog.length ) 
-          sntx_err(/*expecting '*/);//call syntax error
+        if(index >= prog.length || prog[index] != '\'' ) 
+            sntx_err("Missing terminating ' ");//call syntax error
 
+        buf.append('\''); //finish with single quote
+        
         index++;
         token.value = buf.toString();
         token.type = token_type.CHAR;
@@ -202,7 +234,7 @@ public class Lexer {
         buf.append(prog[index]);
         if(prog[index]=='.')
         	numDecimals++;
-        if(numDecimals > 1) sntx_err(/*too many decimals in number*/);
+        if(numDecimals > 1) sntx_err("Too many decimals in number");
         index++;
       }
       token.value = buf.toString();
@@ -228,9 +260,9 @@ public class Lexer {
     }
     
     // if token is still null something is wrong
-    if(token.value==null)
-    	sntx_err(/*stray token/unkown token*/);
-    
+    if(token.value==null){
+    	sntx_err("Unreadable token");
+    }
     return token;
 
   }
@@ -238,9 +270,9 @@ public class Lexer {
   //function to handle escape secuences, 
   //index should be pointing to the character after the '\'
   //http://en.cppreference.com/w/cpp/language/escape
-  private int getEscapeCharacter(){
+  private int getEscapeCharacter() throws SyntaxError{
 	if(index>=prog.length){
-		sntx_err();
+		sntx_err("incomplete string or character");
 		return IGNORE_CHAR;
 	}
 	switch(prog[index]){
@@ -255,11 +287,15 @@ public class Lexer {
 	
 	case 'N':
 	case 'u':
-	case 'U': sntx_err(/*Unicode not supported*/); return IGNORE_CHAR;
+	case 'U': sntx_err("CITRIN does not support unicode"); return IGNORE_CHAR;
 	
 	case 'r': return '\r';
 	case 't': return '\t';
 	case 'v': return (char) 13;
+
+	case '\n':
+	case '\r': return IGNORE_CHAR;
+
 	
 	default: 
 		if(Character.isDigit(prog[index])){
@@ -279,13 +315,13 @@ public class Lexer {
 			
 			//check for ints that aren't octal
 			if(oct.indexOf('9') >= 0 || oct.indexOf('8') >= 0){
-				sntx_err(/* not an octal char*/);
+				sntx_err("\number must be an octal number");
 			}
 			
 			//parse string to int
 			int octal = Integer.parseInt(oct.toString(), 8);
 			if(octal>256)
-				sntx_err(/*octal char out of range*/);
+				sntx_err("Octal char out of range");
             index += j-1;
             return (char) octal;
 		}
@@ -307,7 +343,7 @@ public class Lexer {
 			}
 			
 			if(j == 0){
-				sntx_err(/*\x used with no hex digits*/);
+				sntx_err("\\x used with no hex digits");
 				return IGNORE_CHAR;
 			}
 			//parse string to int
@@ -317,7 +353,7 @@ public class Lexer {
 		}
 		
 		else{
-			sntx_err(/*unrecognized escape sequence, also known as unrecognized char*/);
+			sntx_err("Unrecognized escape character");
 		}
 	}
 	
@@ -334,17 +370,34 @@ public class Lexer {
 	  }
 
   
-  private void sntx_err() {
-	    System.out.println("lexer error");
-	    // TODO Auto-generated method stub
-
-	  }
+  public void sntx_err(String s) throws SyntaxError {
+	throw new SyntaxError(s,getLineNum(),getColumnNum());
+  }
   
   public void putback(){
   index = lastIndex;
   }
 
   
+  public synchronized int getLineNum(){
+	  int n=0;
+	  while(n<listOfEndlines.size() && listOfEndlines.get(n)<=index){
+		  n++;
+	  }
+	  n--; //to get n before index
+	  
+	  return n+2; //return +1 since start at line 1, and +1 since previous endline is on the line before index
+  }
+  public synchronized int getColumnNum(){
+	  int n=0;
+	  while(n<listOfEndlines.size() && listOfEndlines.get(n)<=index){
+		  n++;
+	  }
+	  n--;
+	  
+	  return index-listOfEndlines.get(n);
+	  
+  }
 	  
   public class commands {
 		public commands(String c, keyword t){

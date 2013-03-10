@@ -1,3 +1,5 @@
+import java.util.List;
+
 
   public class var_type{
 	  
@@ -17,12 +19,15 @@
 		  v_type = null;
 	  }
 	  var_type(var_type rhs){
-		  var_name = rhs.var_name;
+		  if(rhs.var_name != null){
+			  var_name = new String(rhs.var_name);			  
+		  }
 		  v_type = rhs.v_type;
 		  value = rhs.value;
 	  }
 	  
-	  private keyword getBinaryOpReturnType(keyword type1, keyword type2) {
+	  //TODO: THIS FUNCTION WONT WORK WITH CLASSES
+	  public keyword getBinaryOpReturnType(keyword type1, keyword type2) throws SyntaxError {
 		  if(type1 == keyword.DOUBLE || type2 == keyword.DOUBLE)
 			  return keyword.DOUBLE;
 		  else if(type1 == keyword.FLOAT || type2 == keyword.FLOAT)
@@ -30,18 +35,18 @@
 		  else if(type1 == keyword.INT || type2 == keyword.INT)
 			  return keyword.INT;
 		  else if(type1 == keyword.SHORT || type2 == keyword.SHORT)
-			  return keyword.SHORT;
+			  return keyword.INT;
 		  else if(type1 == keyword.CHAR || type2 == keyword.CHAR)
 			  return keyword.INT;
 		  else if(type1 == keyword.BOOL || type2 == keyword.BOOL)
 			  return keyword.INT;
 		  else{
-			  sntx_err(/*operations on these types not defined*/);
+			  sntx_err("operations on these types not defined");
 			  return null;
 		  }
 	  }
 	  
-	  var_type add(var_type rhs){
+	  public var_type add(var_type rhs) throws SyntaxError{
 		  var_type v = new var_type();
 		  if(isNumber() && rhs.isNumber()){
 			  keyword returnType = getBinaryOpReturnType(v_type, rhs.v_type);
@@ -58,16 +63,12 @@
 				  v.v_type = keyword.INT;
 				  v.value = value.intValue()+rhs.value.intValue();
 			  }
-			  else if(returnType == keyword.SHORT){
-				  v.v_type = keyword.SHORT;
-				  v.value = value.shortValue()+rhs.value.shortValue();
-			  }
 		  }
 		  return v;
 	  }
 	  
 
-	var_type sub(var_type rhs){
+	public var_type sub(var_type rhs) throws SyntaxError{
 		  var_type v = new var_type();
 		  if(isNumber() && rhs.isNumber()){
 			  keyword returnType = getBinaryOpReturnType(v_type, rhs.v_type);
@@ -83,15 +84,14 @@
 				  v.v_type = keyword.INT;
 				  v.value = value.intValue()-rhs.value.intValue();
 			  }
-			  else if(returnType == keyword.SHORT){
-				  v.v_type = keyword.SHORT;
-				  v.value = value.shortValue()-rhs.value.shortValue();
-			  }
+		  }
+		  else{
+			  //TODO: check if there is a subtraction operator
 		  }
 		  return v;
 	  }
 	  
-	  var_type mul(var_type rhs){
+	  public var_type mul(var_type rhs) throws SyntaxError{
 		  var_type v = new var_type();
 		  if(isNumber() && rhs.isNumber()){
 			  keyword returnType = getBinaryOpReturnType(v_type, rhs.v_type);
@@ -107,20 +107,16 @@
 				  v.v_type = keyword.INT;
 				  v.value = value.intValue()*rhs.value.intValue();
 			  }
-			  else if(returnType == keyword.SHORT){
-				  v.v_type = keyword.SHORT;
-				  v.value = value.shortValue()*rhs.value.shortValue();
-			  }
 		  }
 		  return v;
 	  }
 	  
-	  var_type div(var_type rhs){
+	  public var_type div(var_type rhs) throws SyntaxError{
 		  var_type v = new var_type();
 		  if(isNumber() && rhs.isNumber()){
 			  keyword returnType = getBinaryOpReturnType(v_type, rhs.v_type);
 			  if(rhs.value.doubleValue()==0)
-				  run_err(/*div 0*/);
+				  run_err("divide by 0");
 			  else if(returnType == keyword.DOUBLE){
 				  v.v_type = keyword.DOUBLE;
 				  v.value = value.doubleValue()/rhs.value.doubleValue();
@@ -133,36 +129,28 @@
 				  v.v_type = keyword.INT;
 				  v.value = value.intValue()/rhs.value.intValue();
 			  }
-			  else if(returnType == keyword.SHORT){
-				  v.v_type = keyword.SHORT;
-				  v.value = value.shortValue()/rhs.value.shortValue();
-			  }
 		  }
 		  return v;
 	  }
 	  
-	  var_type mod(var_type rhs){
+	  public var_type mod(var_type rhs) throws SyntaxError{
 		  var_type v = new var_type();
 		  if(isNumber() && rhs.isNumber()){
 			  keyword returnType = getBinaryOpReturnType(v_type, rhs.v_type);
 			  if(returnType == keyword.DOUBLE || returnType == keyword.FLOAT){
-				  sntx_err(/*mod uses integral types only*/);
+				  sntx_err("mod uses integral types only");
 			  }
 			  if(rhs.value.intValue()==0)
-				  run_err(/*div 0*/);
+				  run_err("divide by 0");
 			  else if(returnType == keyword.INT){
 				  v.v_type = keyword.INT;
 				  v.value = value.intValue()%rhs.value.intValue();
-			  }
-			  else if(returnType == keyword.SHORT){
-				  v.v_type = keyword.SHORT;
-				  v.value = value.shortValue()%rhs.value.shortValue();
 			  }
 		  }
 		  return v;
 	  }
 	  
-	  var_type relationalOperator(var_type rhs, String op){
+	  public var_type relationalOperator(var_type rhs, String op) throws SyntaxError{
 		  var_type v = new var_type();
 		  if(isNumber() && rhs.isNumber()){
 			  keyword returnType = getBinaryOpReturnType(v_type, rhs.v_type);
@@ -191,7 +179,7 @@
 				  }
 				  
 			  }
-			  else if(returnType == keyword.INT || returnType == keyword.SHORT){
+			  else if(returnType == keyword.INT){
 				  v.v_type = keyword.BOOL;
 				  int val1 = value.intValue();
 				  int val2 = rhs.value.intValue();
@@ -219,20 +207,16 @@
 		  return v;
 	  }
 	  
-	  var_type unaryMinus(){
+	  public var_type unaryMinus(){
 		  var_type v = new var_type();
 		  if(isNumber()){
 			  if(v_type == keyword.DOUBLE){
 				  v.v_type = keyword.DOUBLE;
 				  v.value = -value.doubleValue();
 			  }
-			  else if(v_type == keyword.INT || v_type == keyword.CHAR || v_type == keyword.BOOL){
+			  else if(v_type == keyword.INT || v_type == keyword.CHAR || v_type == keyword.BOOL || v_type == keyword.SHORT){
 				  v.v_type = keyword.INT;
 				  v.value = -value.intValue();
-			  }
-			  else if(v_type == keyword.SHORT){
-				  v.v_type = keyword.SHORT;
-				  v.value = -value.shortValue();
 			  }
 		  }
 		  return v;
@@ -265,16 +249,57 @@
 		  return true;
 	  }
 	  
-	  private void sntx_err() {
-		    System.out.println("var_type error");
-		    // TODO Auto-generated method stub
+	  boolean canAssign(var_type v2){
+		  //TODO only works on primitive types for now
+		  return true;
+	  }
 
+	  boolean canEvalOp(String op, var_type rhs){
+		  //TODO only works on primitive types for now
+		  return true;
+	  }
+	  var_type getReturnTypeFromBinaryOp(String op, var_type rhs) throws SyntaxError{
+		  var_type v = new var_type();
+		  
+		  if(v_type==keyword.DOUBLE || rhs.v_type==keyword.DOUBLE){
+			  v.v_type = keyword.DOUBLE;
+		  }
+		  else if(v_type == keyword.FLOAT || rhs.v_type == keyword.FLOAT){
+			  v.v_type = keyword.FLOAT;  
+		  }
+		  else {
+			  v.v_type = keyword.INT;  
+		  }
+		  
+		  if(op.equals("%") && (v.v_type==keyword.DOUBLE || v.v_type == keyword.FLOAT)){
+			  sntx_err("Operator % can not take floating point types");
+		  }
+		  
+		  return v;
+	  }
+	  
+	  var_type getReturnTypeFromUnaryOp(String op){
+		  var_type v = new var_type();
+		  if(v_type==keyword.DOUBLE){
+			  v.v_type = keyword.DOUBLE;
+		  }
+		  else if(v_type == keyword.FLOAT){
+			  v.v_type = keyword.FLOAT;  
+		  }
+		  else {
+			  v.v_type = keyword.INT;  
+		  }
+		  
+		  return v;
+	  }
+	  
+	  
+	  public void sntx_err(String s) throws SyntaxError {
+			throw new SyntaxError(s,-1,-1);
 		  }
 	  
-	  private void run_err() {
-		    System.out.println("var_type error");
-		    // TODO Auto-generated method stub
-
+	  public void run_err(String s) throws SyntaxError {
+			throw new SyntaxError(s,-1,-1);
 		  }
 	  
 	  public keyword getPromotedType(){
@@ -285,7 +310,17 @@
 		  return v_type;
 	  }
 	  
-	  //public List<var_type> data; use this for classes?
+	  public String getName(){
+		  if(v_type == keyword.NONPRIMITIVE){
+			  //return class_type;
+			  return "some class name";
+		  }
+		  else{
+			  return v_type.toString().toLowerCase();
+		  }
+	  }
+	  
+	  //public List<var_type> data; //use this for classes?
   }
   
   /*public class primitive_var extends var_type {
