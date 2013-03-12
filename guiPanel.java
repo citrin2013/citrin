@@ -485,6 +485,9 @@ public class guiPanel extends JPanel  implements ActionListener {
               new Thread(i = new Interpreter(controller,currentCppSourceFile,-1)).start();
               controller.addInterpreter(i);
           }
+          else{
+        	  controller.runToBreak();
+          }
       }
 
     	
