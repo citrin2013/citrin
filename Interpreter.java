@@ -6,8 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.Math;
 
-//TODO should derive functions and vars from same base class to handle functions as parameters
-//TODO should add base class for basic vars and classes
+//TODO should derive functions and vars from same base class to handle functions as parameters?
+//TODO should add base class for basic vars and classes?
 
 public class Interpreter implements Runnable{
 
@@ -16,7 +16,7 @@ public class Interpreter implements Runnable{
   private enum return_state{FUNC_RETURN, END_OF_BLOCK, STOP};
 
   //private final int NUM_COMMANDS = 14;
-  private int numStepsToRun = 3;
+  private int numStepsToRun = 0;
   
   private Controller controller;
   private String CppSrcFile;
@@ -208,13 +208,14 @@ public void warning(){
           	return return_state.END_OF_BLOCK; /* is a }, so return */
           }
       }
-      else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER || token.type==token_type.CHAR) {
+      else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER 
+    		  || token.type==token_type.CHAR || token.type==token_type.OPERATOR) {
         /* Not a keyword, so process expression. */
         lexer.putback(); /* restore token to input stream for
                            further processing by eval_exp() */
-        //evaluate
+        //evaluate expression
         try {
-			evalOrCheckExpression();
+			evalOrCheckExpression(false);
 		} catch (StopException e) {
 			return return_state.STOP;
 		} 
@@ -392,16 +393,17 @@ private boolean check_block(){
       		}
         }
     }
-    else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER || token.type==token_type.CHAR) {
+    else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER || token.type==token_type.CHAR || token.type==token_type.OPERATOR) {
       /* Not a keyword, so process expression. */
       lexer.putback(); /* restore token to input stream for
                          further processing by eval_exp() */
       //evaluate
       try {
-			evalOrCheckExpression();
+			evalOrCheckExpression(false);
 	        token = lexer.get_token();
 		    if(token.value.charAt(0)!=';'){ 
-		    	controller.consoleOut("Expecting semicolon before line: "+lexer.getLineNum()+'\n');
+		    	controller.consoleOut("Expecting semicolon before line: "+lexer.getLineNum()+ 
+		    			" column: " + lexer.getColumnNum()+'\n');
 		    	lexer.putback();
 		    	syntaxGood = false;
 		    }
@@ -483,7 +485,7 @@ public void decl_global() throws SyntaxError{
 		  token = lexer.get_token();
 		  if(token.value.equals("=")){ 
 			  try {
-				value = evalOrCheckExpression();
+				value = evalOrCheckExpression(true);
 			} catch (StopException e) {
 				return;
 			}
@@ -523,7 +525,7 @@ public void decl_global() throws SyntaxError{
 	  //check for initialize
 	  token = lexer.get_token();
 	  if(token.value.equals("=")){ //initialize
-		  value = evalOrCheckExpression();
+		  value = evalOrCheckExpression(true);
 		  if(!checkOnly){
 			  i.assignVal(value);
 		  }
@@ -596,7 +598,7 @@ public void decl_global() throws SyntaxError{
 	  cond_index = lexer.index; //save top of loop location
 	  token = lexer.get_token(); // read in "while" token again
 	  
-	  cond = evalOrCheckExpression(); //evaluate the conditional statement
+	  cond = evalOrCheckExpression(false); //evaluate the conditional statement
 	  
 	  if(cond.value.doubleValue()!=0){  // if any bit is not 0
 		  r =interp_block(block_type.CONDITIONAL, false);  // execute loop
@@ -614,7 +616,7 @@ public void decl_global() throws SyntaxError{
   boolean check_while() {
 	  boolean syntaxGood = true;
 	  try {
-		evalOrCheckExpression(); //evaluate the conditional statement
+		evalOrCheckExpression(false); //evaluate the conditional statement
 	} catch (SyntaxError e) {
 		controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
 		syntaxGood = false;
@@ -629,7 +631,7 @@ public void decl_global() throws SyntaxError{
   void exec_if() throws StopException, SyntaxError{
 	  var_type cond;
 	  return_state r;
-	  cond = evalOrCheckExpression(); //evaluate the conditional statement
+	  cond = evalOrCheckExpression(false); //evaluate the conditional statement
 	  
 	  if(cond.value.doubleValue()!=0){  // if any bit is not 0
 		  r = interp_block(block_type.CONDITIONAL, false);  // execute block
@@ -669,7 +671,7 @@ public void decl_global() throws SyntaxError{
   boolean check_if() {
 	  boolean syntaxGood = true;
 	  try {
-		evalOrCheckExpression(); //evaluate the conditional statement
+		evalOrCheckExpression(false); //evaluate the conditional statement
 	} catch (SyntaxError e) {
 		controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
 		syntaxGood = false;
@@ -721,7 +723,7 @@ void exec_do() throws StopException, SyntaxError{
 	  token = lexer.get_token();
 	  if(token.key!=keyword.WHILE) sntx_err("while expected to end do block");
 	  
-	  cond = evalOrCheckExpression(); //evaluate the conditional statement
+	  cond = evalOrCheckExpression(false); //evaluate the conditional statement
 	  
 	  if(cond.value.doubleValue()!=0)  // if any bit is not 0
 		  lexer.index = do_index; //loop back
@@ -733,7 +735,7 @@ boolean check_do() {
 	  syntaxGood = syntaxGood && check_block();
 	  
 	  try {
-		evalOrCheckExpression(); //evaluate the conditional statement
+		evalOrCheckExpression(false); //evaluate the conditional statement
 	} catch (SyntaxError e) {
 		controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
 		syntaxGood = false;
@@ -744,7 +746,7 @@ boolean check_do() {
 		token = lexer.get_token();
 		if(token.key!=keyword.WHILE) 
 			sntx_err("while expected to end do block");
-		evalOrCheckExpression();
+		evalOrCheckExpression(false);
 	} catch (SyntaxError e) {
 		controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
 		syntaxGood = false;
@@ -968,7 +970,6 @@ boolean check_do() {
 		  sntx_err("Function: "+func_name+"has not been defined");
 	  }
 	  else {
-		  //TODO: THIS DOESN'T PROPERLY CHECK TO MAKE SURE ARGS MATCH
 		  lvartemp = lvartos; //save local var stack index
 		  temp = lexer.index; //save return location
 		  func_push(lvartemp); //save local var stack index
@@ -1047,7 +1048,7 @@ boolean check_do() {
 		  lexer.putback();
 		  //process comma separated list of values
 		  do{
-			value = evalOrCheckExpression(); 
+			value = evalOrCheckExpression(true); 
 			args.add(value); // save value temporarily
 			token = lexer.get_token();
 		  } while(token.value.charAt(0) == ',');
@@ -1093,7 +1094,7 @@ boolean check_do() {
   void func_ret() throws StopException, SyntaxError{
 	  var_type value = null;
 	  //get return value (if any)
-	  value = evalOrCheckExpression();
+	  value = evalOrCheckExpression(false);
 	  
 	  token = lexer.get_token();
 	  if(!token.value.equals(";")){
@@ -1111,7 +1112,7 @@ boolean check_do() {
 	  var_type value = null;
 	  //get return value (if any)
 	  try {
-		value = evalOrCheckExpression();
+		value = evalOrCheckExpression(false);
 		token = lexer.get_token();
 		if(!token.value.equals(";")){
 			  sntx_err("Expected ;");
@@ -1265,12 +1266,12 @@ boolean check_do() {
 	  return indexes.get(bestMatch);
   }
   
-  private var_type evalOrCheckExpression() throws SyntaxError, StopException {
+  private var_type evalOrCheckExpression(boolean commasAreDelimiters) throws SyntaxError, StopException {
 	  ExpressionEvaluator exp = new ExpressionEvaluator(this);
 	  if(checkOnly)
-		  return exp.check_expr();
+		  return exp.check_expr(commasAreDelimiters);
 	  else
-		  return exp.eval_exp();
+		  return exp.eval_exp(commasAreDelimiters);
   }
   
   public synchronized void stop(){

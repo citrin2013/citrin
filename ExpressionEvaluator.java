@@ -1,4 +1,8 @@
 
+//TODO: ST stb = (sta, sta), stc; would call comma op but ST stb = sta, sta, stc; would repeatedly declare. 
+//Same issue with functions
+//maybe eval_exp needs to either enter after , operator or before it based on context...
+
 public class ExpressionEvaluator {
 
 	private Interpreter interpreter = null;
@@ -24,7 +28,7 @@ public class ExpressionEvaluator {
 	}
 	
 	//entry point into parser
-	public var_type eval_exp()  throws StopException, SyntaxError {
+	public var_type eval_exp(boolean commasAreDelimiters)  throws StopException, SyntaxError {
 	  checkOnly = false;
 	  var_type value = null;
 	  token = lexer.get_token();
@@ -48,7 +52,7 @@ public class ExpressionEvaluator {
 	      temp = new String(token.value);
 	      temp_tok = token.type;
 	      token = lexer.get_token();
-	      if(token.value.charAt(0) == '=') { /* is an assignment */
+	      if(token.value.equals("=")) { /* is an assignment */
 
 	    	if(!interpreter.is_var(temp)){
 		        throw new SyntaxError("Variable: "+temp+" has not been defined", lexer.getLineNum(), lexer.getColumnNum());
@@ -155,6 +159,7 @@ public class ExpressionEvaluator {
 	  
 	  value = eval_exp4 ();
 	  result = new var_type(value);
+	  //TODO cant use char at here
 	  while((op=token.value.charAt(0)) == '*' || op == '/' || op == '%' ){		
 	    token = lexer.get_token();
 	    partial_value = eval_exp4();
@@ -189,11 +194,12 @@ public class ExpressionEvaluator {
 	  var_type value, result;
 	  char op = '\0';
 
+	  //TODO cant use charAt here
 	  if(token.value.charAt(0) == '+' || token.value.charAt(0) == '-'){
 	    op = token.value.charAt(0);
 	    token = lexer.get_token();
 	  }
-	  value = eval_exp5();
+	  value = eval_exp16();
 	  result = new var_type(value);
 	  if(op!='\0')
 	    if(op == '-') result = value.unaryMinus();
@@ -201,12 +207,58 @@ public class ExpressionEvaluator {
 	  return result;
 	}
 
-	private var_type eval_exp5()  throws StopException, SyntaxError {
+	//evaluate precedence 2
+	//TODO: function calls should be in this precedence rather than in atom??
+	private var_type eval_exp16() throws StopException, SyntaxError {
+		var_type value, result;
+		value = eval_exp17();
+		String op = token.value;
+		
+		  while(op.equals("++") || op.equals("--") || op.equals("[") || op.equals(".") 
+				  || op.equals("->")){		
+			    if(op.equals("++")){
+			    	result = value.suffixIncrement();
+			    	interpreter.printVarVal(value);
+			    	value = result;
+			    }
+			    else if(op.equals("--")){
+			    	result = value.suffixDecrement();
+			    	interpreter.printVarVal(value);
+			    	value = result;
+			    }
+			    else if(op.equals("[")){
+			    	interpreter.sntx_err("arrays have not been implemented");
+			    }
+			    else if(op.equals(".")){
+			    	interpreter.sntx_err("classes have not been implemented");
+			    }
+			    token = lexer.get_token();
+			    op = token.value;
+			  }
+		  
+		return value;
+	}
+	
+	//TODO: function calls should have a lower precedence
+	//evaluate scope resolution
+	private var_type eval_exp17() throws StopException, SyntaxError {
+		var_type value = null;
+		if(token.value.equals("::")){
+			value = atomOf(value);//temporary;
+			interpreter.sntx_err("Operator :: has not been implemented");
+		}
+		value = eval_exp18();
+		return value;
+	}
+	
+	// evaluate parenthesized expressions
+	private var_type eval_exp18()  throws StopException, SyntaxError {
 	  var_type value;
+	  //TODO cant use charAt here
 	  if((token.value.charAt(0) == '(')) {
 	    token = lexer.get_token();
 	    value = eval_exp0(); // get subexpression
-	    if(token.value.charAt(0) != ')') interpreter.sntx_err("expected )");
+	    if(!token.value.equals(")")) interpreter.sntx_err("expected ) before " + token.value+" token");
 	    token = lexer.get_token();
 	  }
 	  else
@@ -229,12 +281,12 @@ public class ExpressionEvaluator {
 	      else*/ 
 	    	//check if function
 	    	if(interpreter.isUserFunc(token.value)) { // call user defined function
-	    	  if(checkOnly){
-	    		  value = interpreter.checkCall(token.value);
-	    	  }
-	    	  else{
-		    	  value = interpreter.call(token.value);	    		  
-	    	  }
+		    	  if(checkOnly){
+		    		  value = interpreter.checkCall(token.value);
+		    	  }
+		    	  else{
+			    	  value = interpreter.call(token.value);	    		  
+		    	  }
 	      	}
 	      else value = interpreter.find_var(token.value); // get var's value
 	      token = lexer.get_token();
@@ -258,8 +310,13 @@ public class ExpressionEvaluator {
 	    	token = lexer.get_token();
 	    	return value;
 	      
+	    case OPERATOR:
+	    	interpreter.sntx_err("Unhandled operator or Expected primary expression before: "+token.value);
+	    	break;
+	    	
 	    case DELIMITER: 
 	      //process empty expression return 0 TODO: verify this works 
+	  	  //TODO cant use charAt here
 	      if(token.value.charAt(0) == ')') return value; 
 	      else interpreter.sntx_err("Bad delimiter: '" +token.value+ "' in expression");
 	    default:
@@ -268,9 +325,15 @@ public class ExpressionEvaluator {
 	  return value;
 	  }
 	
+	private var_type atomOf(var_type c) throws StopException, SyntaxError {
+		  //int i=0;
+		  var_type value = new var_type();
+		  interpreter.sntx_err("classes have not been implemented, so this operation is prohibited");
+		  return value;
+	}
 	
 	//entry point into parser
-	public var_type check_expr() throws SyntaxError {
+	public var_type check_expr(boolean commasAreDelimiters) throws SyntaxError {
 	  checkOnly = true;
 	  var_type value = null;
 	  token = lexer.get_token();

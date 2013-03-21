@@ -25,6 +25,18 @@ public class Lexer {
   ArrayList<Integer> listOfEndlines;
   //public keyword tok = null;
   
+  private String operators[] = { /* Commands must be entered in lowercase in this table?*/
+		    "new",
+		    "delete",
+		    "not_eq",
+		    "and",
+		    "or",
+		    "compl",
+		    "bitand",
+		    "bitor",
+		    "xor"
+		  };
+  
   public commands table[] = { /* Commands must be entered in lowercase in this table?*/
 		    new commands("if", keyword.IF), 
 		    new commands("else", keyword.ELSE),
@@ -118,50 +130,99 @@ public class Lexer {
       return (token);
     }
 
-    if( "!<>=".indexOf(prog[index])>=0 ) { /* is or might be a relational operator */
-      switch(prog[index]) {
-        case '=': 
-          if(index+1 < prog.length && prog[index+1] == '=') {
-            index += 2;
-            token.value = "==";
-          }
-          break;
-        case '!': 
-          if(index+1 < prog.length && prog[index+1] == '=') {
-            index+=2;
-            token.value = "!=";
-          }
-          break;
-
+    if( "!<>=+-*^/%&|".indexOf(prog[index])>=0 ) { /* is an operator */
+      token.type = token_type.OPERATOR;
+      StringBuffer buf = new StringBuffer();
+      buf.append(prog[index]);
+      index++;
+      //check for end of file
+      if(index>=prog.length){
+    	  token.value = buf.toString();
+    	  return token;
+      }
+      switch(buf.charAt(0)) {
+      
         case '<': 
-          if(index+1 < prog.length && prog[index+1] == '=') {
-            index += 2;
-            token.value = "<=";
-          }
-          else {
-            index++;
-            token.value = "<";
+          if(prog[index] == '<'){
+        	  buf.append('<');
+        	  index++;
           }
           break;
-
         case '>': 
-          if(index+1 < prog.length && prog[index+1] == '=') {
-            index += 2;
-            token.value = ">=";
-          }
-          else {
-            index++;
-            token.value = ">";
-          }
-          break;
+            if(prog[index] == '>'){
+          	  buf.append('>');
+          	  index++;
+            }  
+            break;
+        case '+': 
+            if(prog[index] == '+'){
+          	  buf.append('+');
+          	  index++;
+          	  token.value = buf.toString();
+          	  return token;
+            }
+            break;
+        case '-': 
+            if(prog[index] == '-'){
+          	  buf.append('-');
+          	  index++;
+          	  token.value = buf.toString();
+          	  return token;
+            }
+            else if(prog[index] == '>'){
+              buf.append('>');
+              index++;
+              if(prog[index] == '*'){
+            	  buf.append('*');
+            	  index++;
+              }
+              token.value = buf.toString();
+              return token;
+            }
+            break;
+        case '&': 
+            if(prog[index] == '&'){
+          	  buf.append('&');
+          	  index++;
+          	  token.value = buf.toString();
+          	  return token;
+            }  
+            break;
       }
-
-      if(token.value != null){
-    	  token.type = token_type.DELIMITER;
-    	  return (token);	
+      //check for end of file
+      if(index>=prog.length){
+    	  token.value = buf.toString();
+    	  return token;
       }
+      
+      if(prog[index] == '='){
+    	  buf.append('=');
+    	  index++;
+      }
+      token.value = buf.toString();
+      return (token);	
     }
 
+    if( ",:.~?".indexOf(prog[index])>=0 ){ /* operator */
+        StringBuffer buf = new StringBuffer();
+        buf.append(prog[index]);
+        index++;
+        if(index>=prog.length){
+      	  token.value = buf.toString();
+      	  return token;
+        }
+        
+        if(buf.charAt(0) == '.'){
+        	if(prog[index] == '*')
+        		buf.append('*');
+        	index++;
+        }
+        
+        token.value = buf.toString();
+        token.type = token_type.OPERATOR;
+        return (token);
+      }
+    
     if(prog[index]=='"') { /* quoted string */
       index++;
       StringBuffer buf = new StringBuffer();
@@ -218,13 +279,14 @@ public class Lexer {
         token.type = token_type.CHAR;
         return (token);
       }
-    
-    if( "+-*^/%=;(),'".indexOf(prog[index])>=0 ){ /* delimiter */
+
+    if( ";'()".indexOf(prog[index])>=0 ){ /* delimiter */
         token.value = Character.toString(prog[index]);
         index++;
         token.type = token_type.DELIMITER;
         return (token);
       }
+   
     
     if(Character.isDigit(prog[index]) || 
     		(prog[index]=='.' && Character.isDigit(prog[index+1]) ) ) { /* number */
@@ -252,6 +314,16 @@ public class Lexer {
       token.type = token_type.TEMP;
     }
 
+    
+    /* see if a string is an operator*/
+    if(token.type==token_type.TEMP) {
+        if(isOperatorString(token.value)){
+        	token.type = token_type.OPERATOR;
+        	return token;
+        }
+      }
+    
+    
     /* see if a string is a command or a variable */
     if(token.type==token_type.TEMP) {
       token.key = look_up(token.value); /* convert to internal rep */
@@ -261,7 +333,8 @@ public class Lexer {
     
     // if token is still null something is wrong
     if(token.value==null){
-    	sntx_err("Unreadable token");
+    	index++;
+    	sntx_err("Unkown token: " + prog[index-1]);
     }
     return token;
 
@@ -360,7 +433,7 @@ public class Lexer {
 	return IGNORE_CHAR;
   }
 	  
-  public keyword look_up(String key) {
+  private keyword look_up(String key) {
 	    int i=-1;
 	    key = new String(key.toLowerCase());
 	    for(i = 0; i<table.length ;i++){
@@ -369,9 +442,18 @@ public class Lexer {
 	    return null; // unkown command
 	  }
 
+  private boolean isOperatorString(String key) {
+	    int i=-1;
+	    key = new String(key.toLowerCase());
+	    for(i = 0; i<operators.length ;i++){
+	      if(key.equals(operators[i])) return true;
+	    }
+	    return false; // unkown command
+	  }
   
   public void sntx_err(String s) throws SyntaxError {
 	throw new SyntaxError(s,getLineNum(),getColumnNum());
+
   }
   
   public void putback(){

@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -6,6 +7,8 @@ import java.util.List;
 	  public String var_name;
 	  public keyword v_type;
 	  public Number value;
+	  public String scope; //TODO: currently unused, will require more thought
+	  public var_type memberOf = null; //TODO:
 	  public static final String EQ = "==";
 	  public static final String LT = "<";	
 	  public static final String LE = "<=";
@@ -238,6 +241,23 @@ import java.util.List;
 		  if(v_type == keyword.DOUBLE) value = rhs.value.doubleValue();
 	  }
 	  
+	  var_type suffixIncrement() throws SyntaxError{
+		  var_type result = new var_type(this);
+		  var_type v1 = new var_type();
+		  v1.v_type = keyword.INT;
+		  v1.value = 1;
+		  this.assignVal(this.add(v1));
+		  return result;
+	  }
+
+	  var_type suffixDecrement() throws SyntaxError{
+		  var_type result = new var_type(this);
+		  var_type v1 = new var_type();
+		  v1.v_type = keyword.INT;
+		  v1.value = -1;
+		  this.assignVal(this.add(v1));
+		  return result;
+	  }
 	  
 	  boolean isNumber(){
 		  return (v_type == keyword.INT || v_type == keyword.FLOAT || v_type == keyword.DOUBLE || 
