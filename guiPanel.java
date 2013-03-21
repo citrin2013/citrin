@@ -18,6 +18,7 @@ import java.util.Hashtable;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -81,7 +82,7 @@ public class guiPanel extends JPanel  implements ActionListener {
 		JMenu editMenu = new JMenu("Edit");
 		//JMenu styleMenu = new JMenu("Style");
 		JMenu helpMenu = new JMenu("Help");
-		
+		JMenu runMenu = new JMenu("Run");
 		
 
 		
@@ -90,7 +91,7 @@ public class guiPanel extends JPanel  implements ActionListener {
 		// openFile = new JMenuItem("Open");
 		// saveFile = new JMenuItem("Save");
 		// saveAsFile = new JMenuItem("Save As");
-    // run = new JMenuItem("Run");
+		// run = new JMenuItem("Run");
 		// exit = new JMenuItem("Exit");
 
 		//menu items for "Edit"
@@ -103,6 +104,7 @@ public class guiPanel extends JPanel  implements ActionListener {
 		//add the menus to the menu bar
 		topBar.add(fileMenu);
 		topBar.add(editMenu);
+		topBar.add(runMenu);
 		//topBar.add(styleMenu);
 		topBar.add(helpMenu);
 		
@@ -115,36 +117,34 @@ public class guiPanel extends JPanel  implements ActionListener {
 		// fileMenu.addSeparator();
 		// fileMenu.add(saveAsFile);
 		// fileMenu.addSeparator();
-    // fileMenu.add(run);
+		// fileMenu.add(run);
 		// fileMenu.addSeparator();
 		// fileMenu.add(exit);
 		
-		
+
 		helpMenu.add(tutorial);
 		
 		JPanel  myPanel = new JPanel();
-
-
 	    
 		JTextArea area = new JTextArea();
 		JTextArea area2 = new JTextArea();
 		JTextArea area3 = new JTextArea();
-		//set up the area to be put into the scrool pane
+		//set up the area to be put into the scroll pane
 		area.setColumns(30);
 		area.setRows(10);
 		area.setEditable(true);
 		
 		JToolBar editToolBar = new JToolBar();
-		
-
-		
+				
 		//add edit buttons to menu
-			// TODO: get undo/redo working, need undomanager and listner; look at swing.undo
+		// TODO: get undo/redo working, need undomanager and listner; look at swing.undo
 		editMenu.add(undo);
 		editMenu.add(redo);
+		editMenu.addSeparator();
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.cutAction));
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.copyAction));
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.pasteAction));
+		editMenu.addSeparator();
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.selectAllAction));
 		
 		// Make buttons look nicer
@@ -164,7 +164,6 @@ public class guiPanel extends JPanel  implements ActionListener {
 	    a = area.getActionMap().get(DefaultEditorKit.selectAllAction);
 	    a.putValue(Action.NAME, "Select All");
 	    
-	 
 	    Action copyAction = new DefaultEditorKit.CopyAction();
 	    copyAction.putValue(Action.SMALL_ICON, new ImageIcon("copy.gif"));
 	    copyAction.putValue(Action.NAME, ""); 
@@ -177,8 +176,6 @@ public class guiPanel extends JPanel  implements ActionListener {
 	    cutAction.putValue(Action.SMALL_ICON, new ImageIcon("cut.gif"));
 	    cutAction.putValue(Action.NAME, "");
 	    
-  
-
 		editToolBar.add(cutAction);
 		editToolBar.add(copyAction);
 		editToolBar.add(pasteAction);
@@ -206,8 +203,7 @@ public class guiPanel extends JPanel  implements ActionListener {
 
 		area3.setColumns(30);
 		area3.setRows(10);
-		area3.setEditable(true);
-
+		area3.setEditable(false);
 
 	    Console console = new Console();
 	    console.setEditable(false);
@@ -215,67 +211,67 @@ public class guiPanel extends JPanel  implements ActionListener {
 		
 		JScrollPane scrollPane = new JScrollPane(editor);
 		
-		JScrollPane scrollPane2 = new JScrollPane(area2);
+		JScrollPane scrollPane2 = new JScrollPane(console);
 
 		JScrollPane scrollPane3 = new JScrollPane(area3);
 						
-		tabbedPane.addTab("Program", null);
-		tabbedPane.add(scrollPane);
+		//tabbedPane.addTab("Program", null);
+		tabbedPane.add("Program", scrollPane);
 		
-		tabbedPane2.addTab("Output", null);
-		tabbedPane.add(scrollPane2);
+		//tabbedPane2.addTab("Console", null);
+		tabbedPane2.add("Console", scrollPane2);
 		
-		tabbedPane3.addTab("States", null);
-		tabbedPane.add(scrollPane3);
-
-
-
-    fileMenu.add(new OpenAction(editor));
-    fileMenu.add(new SaveAction("Save", editor, true));
-    fileMenu.add(new SaveAction("SaveAs", editor, false));
-    fileMenu.add(new RunAllAction(console));
-    fileMenu.add(new StepAction(console));
-    fileMenu.add(new ExitAction());
+		//tabbedPane2.add("copy.gif", new ImageIcon("copy.gif"), 0);
 		
-		JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane3, console);
+		//tabbedPane3.addTab("States", null);
+		tabbedPane3.add("States", scrollPane3);
+
+		fileMenu.add(new OpenAction(editor));
+		fileMenu.addSeparator();
+		fileMenu.add(new SaveAction("Save", editor, true));
+		fileMenu.add(new SaveAction("SaveAs", editor, false));
+		fileMenu.addSeparator();
+		fileMenu.add(new ExitAction());
+
+		runMenu.add(new RunAllAction(console));
+		runMenu.add(new StepAction(console));
+		
+		editToolBar.add(new RunAllActionButton());
+		
+		JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane3, tabbedPane2);
 		
 		splitPane2.setOneTouchExpandable(true);
 		splitPane2.setDividerLocation(200);
 		
 		// JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, splitPane2);
-		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, splitPane2);
+		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, splitPane2);
 
 		splitPane.setOneTouchExpandable(true);
 		splitPane.setDividerLocation(450);
 		
 		//Provide minimum sizes for the two components in the split pane
-		Dimension minimumSize = new Dimension(100, 50);
+		Dimension minimumSize = new Dimension(200, 10);
 		scrollPane.setMinimumSize(minimumSize);
 		scrollPane2.setMinimumSize(minimumSize);
-		scrollPane3.setMinimumSize(minimumSize);
-
+		scrollPane3.setMinimumSize(new Dimension(10, 10));
 
 		myPanel.setLayout(new BorderLayout());
-		myPanel.setPreferredSize(new Dimension(400, 400));
+		myPanel.setPreferredSize(new Dimension(500, 600));
 		setLayout(new BorderLayout());
-		setPreferredSize(new Dimension(800, 600));
+		setPreferredSize(new Dimension(800, 650));
 		
-		myPanel.add("North", editToolBar);
+		
 		myPanel.add("Center",splitPane);
-		myPanel.setLocation(0, 0);
+		myPanel.add("North", editToolBar);
+		//myPanel.setLocation(0, 0); //This line doesn't seem to be necessary.
 		add("Center", myPanel);
 		add("North", topBar);
 
-		setLocation(0,0);
+		//setLocation(0,0); //This line doesn't seem to be necessary.
 		
-		controller = new Controller(console);
-		
-		// newFile.addActionListener(this);
-		// saveAsFile.addActionListener(this);
-		 //exit.addActionListener(this);
+		controller = new Controller(console);	
 	}
 	
-
 	
 	private static void createAndShowGUI(){
 		// Create the container	
@@ -469,6 +465,38 @@ public class guiPanel extends JPanel  implements ActionListener {
     public RunAllAction(JTextComponent display) {
       super("RunAll");
       this.display = display;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+	  Interpreter i;
+      // run interpreter on currentCppSourceFile
+    	
+      // Start interpreter in new thread
+      // TODO: hmmmm is this the best way
+      synchronized(controller){
+          if(!controller.isInterpreting()){
+        	  controller.clearConsole();
+        	  controller.setInterpretingStart();
+              new Thread(i = new Interpreter(controller,currentCppSourceFile,-1)).start();
+              controller.addInterpreter(i);
+          }
+          else{
+        	  controller.runToBreak();
+          }
+      }
+    }
+  }
+
+
+  // An action that runs the interpreter on all the contents of the current cpp source file
+ class RunAllActionButton extends AbstractAction {
+
+     String interpretation = "";    
+    
+     public RunAllActionButton(){
+
+      super("", new ImageIcon("runAll.gif"));
     }
 
     @Override
