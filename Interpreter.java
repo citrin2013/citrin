@@ -510,39 +510,39 @@ public void decl_global() throws SyntaxError{
 
 	/* Declare a local variable. */
 	private void decl_local() throws StopException, SyntaxError{
-		var_type i = new var_type();
-		token = lexer.get_token(); /* get type */
-		i.v_type = token.key;
-		var_type value;
+	var_type i = new var_type();
+	token = lexer.get_token(); /* get type */
+	i.v_type = token.key;
+	var_type value;
 
-		do { /* process comma-separated list */
-			i.value = 0; /* init to 0 should remove this*/
-			token = lexer.get_token(); /* get var name */
-			i.var_name = new String(token.value);
+	do { /* process comma-separated list */
+		i.value = 0; /* init to 0 should remove this*/
+		token = lexer.get_token(); /* get var name */
+		i.var_name = new String(token.value);
 
-			//check for initialize
-			token = lexer.get_token();
-			if(token.value.equals("=")){ //initialize
-				value = evalOrCheckExpression(true);
-				if(!checkOnly){
-					i.assignVal(value);
-				}
+		//check for initialize
+		token = lexer.get_token();
+		if(token.value.equals("=")){ //initialize
+			value = evalOrCheckExpression(true);
+			if(!checkOnly){
+				i.assignVal(value);
 			}
-			else{
-				lexer.putback();
-			}
-
-			//push var onto stack
-			var_type v=local_push(i);
-			if(!checkOnly)
-				printVarVal(v);
-
-			token = lexer.get_token();
-		} while( token.value.charAt(0) == ',');
-		if(token.value.charAt(0) != ';'){
-			sntx_err("Semicolon expected");
+		}
+		else{
 			lexer.putback();
 		}
+
+		//push var onto stack
+		var_type v=local_push(i);
+		if(!checkOnly)
+			printVarVal(v);
+
+		token = lexer.get_token();
+	} while( token.value.charAt(0) == ',');
+	if(token.value.charAt(0) != ';'){
+		sntx_err("Semicolon expected");
+		lexer.putback();
+	}
 	}
 
 	private var_type global_push(var_type i) throws SyntaxError {

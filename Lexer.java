@@ -115,7 +115,6 @@ public class Lexer {
 
 		}
 
-
 		if(index >= prog.length) { /* end of file */
 			token.value = "";
 			token.key = keyword.FINISHED;
@@ -207,11 +206,11 @@ public class Lexer {
 			StringBuffer buf = new StringBuffer();
 			buf.append(prog[index]);
 			index++;
+
 			if(index>=prog.length){
 				token.value = buf.toString();
 				return token;
 			}
-
 			if(buf.charAt(0) == '.'){
 				if(prog[index] == '*')
 					buf.append('*');
@@ -460,7 +459,6 @@ public class Lexer {
 		index = lastIndex;
 	}
 
-
 	public synchronized int getLineNum(){
 		int n=0;
 		while(n<listOfEndlines.size() && listOfEndlines.get(n)<=index){
@@ -547,5 +545,3 @@ public class Lexer {
 		}
 		
 	}
-
-}
