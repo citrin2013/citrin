@@ -2,14 +2,14 @@ import javax.swing.*;
 import javax.swing.text.*;
 
 public class Console extends JTextField {
-  Document doc; 
+	Document doc; 
 
-  public Console() { 
-    super(); 
-  }
+	public Console() { 
+		super(); 
+	}
 
-  public Console(Document doc) { 
-    this.doc = doc;
-  }
+	public Console(Document doc) { 
+		this.doc = doc;
+	}
 
 }
