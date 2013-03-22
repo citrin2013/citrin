@@ -1,34 +1,34 @@
+JC=javac
+JI=java
+JFLAGS = -g
+CLASSES = $(shell ls *.java)
+
+.SUFFIXES: .java .class
+
 # ---------------------------------------------------------------------------
 # Default Rule
-all : 
-	javac *.java
+
+default: classes
 
 # ---------------------------------------------------------------------------
-# Run / Test
+# Run 
 
 rungui : guiPanel.class Interpreter.class
-	java guiPanel
+	$(JI) guiPanel
 
 runInterpreter : Interpreter.class
-	java Interpreter
+	$(JI) Interpreter
 
-testScanner1 :
-	java Scanner ../cppsrc/scanner_test_1.cpp
+# ----------------------------------------------------------------------------
+# Test
 
 # ---------------------------------------------------------------------------
 # Compile
 
-Interpreter.class : Interpreter.java
-	javac $^
+classes: $(CLASSES:.java=.class)
 
-guiPanel.class : guiPanel.java Console.class Editor.class
-	javac guiPanel.java
-
-Console.class : Console.java
-	javac $^
-
-Editor.class : Editor.java
-	javac $^
+.java.class:
+	$(JC) $(JFLAGS) $*.java
 
 # ---------------------------------------------------------------------------
 # misc
@@ -36,5 +36,5 @@ Editor.class : Editor.java
 clean :
 	rm *.class tags
 
-tags : 
+tags : $(shell ls *.java)
 	ctags -R .
