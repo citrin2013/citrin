@@ -5,10 +5,10 @@ import javax.swing.text.JTextComponent;
 
 public class Editor extends JTextArea {
 
-  public Editor() {
-    super();
-    setLineWrap(true);
-  }
+	public Editor() {
+		super();
+		setLineWrap(true);
+	}
 
 }
 
