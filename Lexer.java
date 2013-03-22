@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.lang.Math;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.io.*;
 
 
 public class Lexer {
@@ -502,6 +503,49 @@ public class Lexer {
 			int a = 1/0;
 			return a==0;
 		}
+
+		@Deprecated
+		// Just for SymbolTableDriver for SymbolTable demo.
+		// This function should never be used elsewhere.
+		public SymbolData toSymbol()
+		{
+			// System.out.println("this.key : "+ this.key);
+
+			SymbolData sym = null;
+			if ( this.key == keyword.BOOL ) {
+				sym = new Bool( true);
+			}
+			else if (this.key == keyword.INT) {
+				sym = new Int( 1);
+			}
+			else if (this.key == keyword.CHAR) {
+				sym = new Char( 'a' );
+			}
+			else if (this.key == keyword.SHORT) {
+				sym = new Short( (short)1 );
+			}
+			else if (this.key == keyword.FLOAT) {
+				sym = new Float( (float)1.0 );
+			}
+			else if (this.key == keyword.DOUBLE) {
+				sym = new Double( 2.0 );
+			}
+			else {
+				sym = new DebugSymbol( "DEBUG" ) ;
+			}
+			return sym;
+		}
+
+		public void print(PrintStream ps) 
+		{
+			ps.print("<");
+			ps.print(value+",");
+			ps.print(type+",");
+			ps.print(key);
+			ps.print(">");
+			ps.println();
+		}
+		
 	}
 
 }
