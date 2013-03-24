@@ -206,8 +206,8 @@ public class Interpreter implements Runnable{
 				return return_state.END_OF_BLOCK; /* is a }, so return */
 				}
 			}
-			else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER 
-					|| token.type==token_type.CHAR || token.type==token_type.OPERATOR) {
+			else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER || token.type==token_type.CHAR 
+					|| token.type==token_type.OPERATOR || token.value.equals("(") ) {
 			/* Not a keyword, so process expression. */
 			lexer.putback(); /* restore token to input stream for
 								further processing by eval_exp() */
@@ -391,7 +391,8 @@ private boolean check_block(){
 				}
 			}
 		}
-		else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER || token.type==token_type.CHAR || token.type==token_type.OPERATOR) {
+		else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER || token.type==token_type.CHAR 
+				|| token.type==token_type.OPERATOR || token.value.equals("(") ) {
 			/* Not a keyword, so process expression. */
 			lexer.putback(); /* restore token to input stream for
 							further processing by eval_exp() */

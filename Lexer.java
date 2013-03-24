@@ -187,6 +187,14 @@ public class Lexer {
 					return token;
 				}  
 				break;
+			case '|': 
+				if(prog[index] == '|'){
+					buf.append('|');
+					index++;
+					token.value = buf.toString();
+					return token;
+				}  
+				break;
 			}
 			//check for end of file
 			if(index>=prog.length){
@@ -320,7 +328,7 @@ public class Lexer {
 				token.type = token_type.OPERATOR;
 				return token;
 			}
-			}
+		}
 
 
 		/* see if a string is a command or a variable */
@@ -494,6 +502,21 @@ public class Lexer {
 		token_type type = null;
 		keyword key = null;
 
+		public Token(){
+			value = null;
+			type = null;
+			key = null;
+		}
+		
+		public Token clone(){
+			Token T = new Token();
+			T.value = value;
+			T.type = type;
+			T.key = key;
+			return T;
+		}
+		
+		
 		//TODO temporary override to remind myself to call token.value.equals, not token.equals
 		@Override
 		public boolean equals(Object other){
