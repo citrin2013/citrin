@@ -507,7 +507,7 @@ public class Lexer {
 			type = null;
 			key = null;
 		}
-		
+
 		public Token clone(){
 			Token T = new Token();
 			T.value = value;
@@ -515,8 +515,8 @@ public class Lexer {
 			T.key = key;
 			return T;
 		}
-		
-		
+
+
 		//TODO temporary override to remind myself to call token.value.equals, not token.equals
 		@Override
 		public boolean equals(Object other){
@@ -566,5 +566,5 @@ public class Lexer {
 			ps.print(">");
 			ps.println();
 		}
-		
+
 	}
