@@ -77,6 +77,10 @@ public class Controller {
 		interpreter.addSteps(s);
 	}
 	
+	public void runToBreak(){
+		interpreter.runToBreak();
+	}
+	
 	public synchronized void stopInterpreter(){
 		if(interpreting){
 			interpreter.stop();
