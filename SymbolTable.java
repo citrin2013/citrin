@@ -2,6 +2,8 @@ import java.util.Vector;
 import java.io.PrintStream;
 import java.util.*;
 
+import java.io.*; // For debugging
+
 // ---------------------------------------------------------------------------
 // Overview
 //
@@ -64,7 +66,10 @@ import java.util.*;
 
 // ---------------------------------------------------------------------------
 // TODO
-//
+//	
+//	[ ] scopes in SymbolTable should probably contain top level Scope instances
+//	    so pushScope() should not add child to its vector
+//	
 //	[ ] Name SymbolLocation just Location ?
 //	
 //	[ ] level of symbol
@@ -185,6 +190,11 @@ class DebugSymbol extends SymbolData {
 	public void print(PrintStream ps)
 	{
 		ps.print(debug);
+	}
+
+	public String toString() 
+	{
+		return debug;
 	}
 
 	String debug;
@@ -324,7 +334,6 @@ class Reference extends SymbolData {
 
 // ---------------------------------------------------------------------------
 // Symbol
-
 class Symbol {
 	Symbol(SymbolLocation location, SymbolData data) 
 	{
@@ -337,6 +346,11 @@ class Symbol {
 		ps.print("To Implement : Symbol.print() ");		
 	}
 
+	SymbolData toData()
+	{
+		return data;
+	}
+
 	SymbolLocation location;
 	SymbolData data;
 
@@ -345,6 +359,14 @@ class Symbol {
 // ---------------------------------------------------------------------------
 // Scope
 class Scope {
+
+	static PrintStream stdout = new PrintStream( new FileOutputStream( FileDescriptor.out ) ); // For Debugging
+
+	Scope(String scopeName)
+	{
+		this.parent = null;
+		this.name=scopeName;
+	}	
 
 	Scope(Scope parent, String scopeName)
 	{
@@ -366,8 +388,6 @@ class Scope {
 		if ( parent != null && parent.searchSymbol(key) != null ) {
 			d = SymbolDiagnosis.Shadow;
 		}
-
-		// System.out.println("hello");
 
 		symbols.put(key, sym);
 		return d;
@@ -406,11 +426,13 @@ class Scope {
 	// @Deprecated
 	Symbol searchSymbol(String key) 
 	{
+		// System.out.println("inside searchSymbol("+key+")");
 
 		Scope scope = this;
-		while (scope.parent != null) {
+		while (scope != null) {
 			if ( scope.hasSymbol(key) ) {
-				return symbols.get(key);	
+				Symbol sym = scope.symbols.get(key);	
+				return sym;
 			}
 			scope = scope.parent;
 		}
@@ -421,7 +443,7 @@ class Scope {
 
 	boolean hasSymbol(String key) 
 	{
-		return (symbols.containsKey(key)) ? true : false ;
+		return symbols.containsKey(key);
 	}
 
 	void print(PrintStream ps)
@@ -439,7 +461,8 @@ class Scope {
 			// e.getKey().print(ps);
 			ps.print( e.getKey() );
 			ps.print(" : ");
-			e.getValue().print(ps);
+			// e.getValue().print(ps);
+			ps.print( e.getValue().toData().toString() );
 			ps.println("");
 		}
 	
@@ -460,13 +483,12 @@ class Scope {
 	}
 	
 	// SortedMap<String, SymbolData> symbols = new TreeMap<String, SymbolData>();
-	Map<String, Symbol> symbols = new HashMap<String, Symbol>();
 	// Map<String, SymbolData> symbols = new ConcurrentHashMap<String, SymbolData>();
-	Scope						 parent  = null;
-	Vector<Scope>				 children = new Vector<Scope>();
-	String						 name;
+	Map<String, Symbol> symbols  = new HashMap<String, Symbol>();
+	Scope               parent   = null;
+	Vector<Scope>       children = new Vector<Scope>();
+	String              name;
 }
-
 
 // ---------------------------------------------------------------------------
 // SymbolTableImplementation
@@ -494,11 +516,28 @@ class SymbolTable {
 		return currentScope.assignSymbol(key,sym);
 	}
 
+	public void pushParallelScope(String scopeName)
+	{
+		// System.out.println(currentScope.parent.name);
+
+		// if current scope is on the top level
+		if ( currentScope.parent == null ) { 
+			Scope newScope  = new Scope(scopeName);
+			scopes.addElement(newScope);	
+		}	
+		// else make the new scope sibling of the parent's children
+		else {
+			Scope newScope  = new Scope(currentScope.parent, scopeName);
+			currentScope.parent.children.addElement(newScope);
+			currentScope = newScope;
+		}
+	}
+
 	public void pushScope(String scopeName)
 	{
 		Scope newScope  = new Scope(currentScope, scopeName);
 		currentScope.children.add(newScope);
-		scopes.addElement(newScope);
+		// scopes.addElement(newScope);
 		currentScope = newScope;
 	}
 
@@ -530,13 +569,16 @@ class SymbolTable {
 			ps.println("dumpTable: SymbolTable is empty.");		
 		}
 		else {
-			Scope topScope = scopes.elementAt(0);
-			topScope.printAll(ps);
+			for (Scope scope : scopes) {
+				scope.printAll(ps);
+			}
+//			Scope topScope = scopes.elementAt(0);
+//			topScope.printAll(ps);
 		}
 		ps.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SymbolData Table Dump END");
 	}
 	
-	private Vector<Scope> scopes  = new Vector<Scope>();
+	private Vector<Scope> scopes = new Vector<Scope>();
 	// private Vector<ClassOrStruct> typeStack = new Vector<ClassOrStruct>();
 	private Scope currentScope;
 }

@@ -10,6 +10,7 @@ import java.io.*;
 
 public class SymbolTableDriver {
 
+	static PrintStream stdout = new PrintStream( new FileOutputStream( FileDescriptor.out ) );
 
 	//
 	//      Lex
@@ -41,7 +42,7 @@ public class SymbolTableDriver {
 	//
 	public static void SymbolTest()
 	{
-		PrintStream stdout = new PrintStream( new FileOutputStream( FileDescriptor.out ) );
+		// PrintStream stdout = new PrintStream( new FileOutputStream( FileDescriptor.out ) );
 
 		//
 		//      SymbolData Table Construction
@@ -251,21 +252,66 @@ public class SymbolTableDriver {
 		}
 	}
 
+	// 
+	// Demo for a function calling another function
+	// 
+	// If 
+	static void SymbolTest3()
+	{
+
+		SymbolTable stab = new SymbolTable("Global");
+
+		// Symbol
+		SymbolLocation loc  = new SymbolLocation(1, 1); 
+		String         key  = "foo";                    
+		SymbolData     data = new DebugSymbol("foo in global"); 
+		Symbol         sym  = new Symbol(loc, data);   
+
+		// Insert symbol foo="foo in global" into Global scope
+		stab.insertSymbol( key, sym );
+			
+		// Insert symbol foo="foo in Function 1" in to the Function1 Scope
+		stab.pushScope("Function1");
+		data = new DebugSymbol("foo in Function1");
+		sym  = new Symbol(loc, data);
+		stab.insertSymbol( key, sym );
+
+		// Insert symbol foo="foo in Function2" in to the Function2 Scope
+		stab.pushParallelScope("Function2");
+
+		// debug
+		stab.dumpTable(stdout);
+
+		// 
+		stdout.print("Now the searchSymbol(\"foo\") = ");
+		Symbol foo = stab.searchSymbol("foo");
+		if ( foo != null ) {
+			stdout.println(foo.toData().toString());
+		}
+		else {
+			stdout.println("null");
+		}
+
+	}
+
 	public static void main(String[] arg) {
 
-		int path = 2;
+		int path = 3;
 
 		if (path==0) {
 			LexTest();
 			System.out.println("Exiting...");
 			return;
 		}
-		if (path==1) {
+		else if (path==1) {
 			SymbolTest();
 			return;
 		}
-		if (path==2) {
+		else if (path==2) {
 			SymbolTest2();
+		}
+		else if (path==3) {
+			SymbolTest3();
 		}
 
 	}
