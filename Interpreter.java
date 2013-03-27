@@ -18,6 +18,7 @@ public class Interpreter implements Runnable{
 	//private final int NUM_COMMANDS = 14;
 	private int numStepsToRun = 0;
 
+	public SymbolTable symbolTable;
 	private Controller controller;
 	private String CppSrcFile;
 	private boolean StopRun = false;
@@ -25,21 +26,13 @@ public class Interpreter implements Runnable{
 
 	private Lexer.Token token;
 
-	private int lvartos=0; /* index into local variable stack */
 	private var_type ret_value; /* function return value */
-	private int functos = 0; /* index to top of function call stack */
 
 	//TODO: need to look at removing the hard limits for variables or adding checks/error messages
 
-	private final int NUM_LOCAL_VARS = 200;
-	private var_type local_var_stack[] = new var_type[NUM_LOCAL_VARS];
 	private final int NUM_FUNC = 100;
 	private func_type func_table[] = new func_type[NUM_FUNC];
-	private int func_index = 0; // index into function table
-	int call_stack[] = new int[NUM_FUNC];
-	private final int NUM_GLOBAL_VARS = 100;
-	private var_type global_vars[] = new var_type[NUM_GLOBAL_VARS];
-	private int gvar_index = 0; /* index into global variable table */
+	private int func_index = 0; // index into function table/
 
 	static private String interpretation = "";
 	Lexer lexer = null;
@@ -54,6 +47,8 @@ public class Interpreter implements Runnable{
 		controller = c;
 		CppSrcFile = s;
 		numStepsToRun = numSteps;
+		symbolTable = new SymbolTable();
+		
 	}
 
 	@Override
@@ -78,24 +73,14 @@ public class Interpreter implements Runnable{
 		lexer = new Lexer();
 		lexer.loadSourceFile(CppSrcFile);
 
-		gvar_index = 0; /* initialize global variable index */
-		lvartos = 0; /* initialize local variable stack index */
-		functos = 0; /* initialize the CALL stack index */
-
 		boolean good = prescan1();
 		if(good == false){
 			return interpretation;
 			}
 
-		lvartos = 0;
 		lexer.index = 0;
-		functos = 0;
-		global_vars = new var_type[NUM_GLOBAL_VARS];
-		gvar_index = 0;
-		call_stack = new int[NUM_FUNC];
 		func_index = 0;
 		func_table = new func_type[NUM_FUNC];
-		local_var_stack = new var_type[NUM_LOCAL_VARS];
 
 		int index = -1;
 		try {
@@ -115,14 +100,9 @@ public class Interpreter implements Runnable{
 		} catch (SyntaxError e1) {
 			controller.consoleOut("Syntax Error: main() not found"+'\n');
 			return interpretation;
-		} //set up call to main		 
+		} //set up call to main		
 		lexer.index = func_table[index].location;
-			int lvartemp = lvartos; //save local var stack index
-			try {
-			func_push(lvartemp);
-		} catch (SyntaxError e1) {
-			e1.printStackTrace();
-		} //save local var stack index
+		symbolTable.pushFuncScope("main");
 
 		//TODO: need special call main
 		try {
@@ -131,11 +111,7 @@ public class Interpreter implements Runnable{
 		} catch (SyntaxError e) {
 			controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
 		}
-		try {
-			func_pop();
-		} catch (SyntaxError e) {
-			e.printStackTrace();
-		}
+		symbolTable.popScope();
 
 		return interpretation;
 	}
@@ -235,7 +211,7 @@ public class Interpreter implements Runnable{
 				case INT: // declare local variables
 					lexer.putback();
 					try {
-					decl_local();
+					decl_var();
 				} catch (StopException e) {
 					return return_state.STOP;
 				}
@@ -277,37 +253,6 @@ public class Interpreter implements Runnable{
 }
 
 
-public var_type assign_var(String var_name, var_type value) throws SyntaxError {
-	int i;
-	var_type result;
-	// check if its a local variable
-	if(functos==0){
-		sntx_err("variable " + var_name +" not found");
-	}
-
-	// TODO: check this... the indexes for loops look iffy
-	for(i=lvartos-1;i >= call_stack[functos - 1]; i--){
-		if(var_name.equals(local_var_stack[i].var_name)){
-			local_var_stack[i].assignVal(value);
-			printVarVal(local_var_stack[i]);
-			result = new var_type(local_var_stack[i]);
-			return result;
-		}
-	}
-
-	if(i < call_stack[functos-1]) // if not local try global
-		for(i = 0; i < gvar_index; i++)
-			if(var_name.equals(global_vars[i].var_name)){
-				global_vars[i].assignVal(value);
-				printVarVal(global_vars[i]);
-				result = new var_type(global_vars[i]);
-				return result;
-			} 
-
-	sntx_err("variable " + var_name +" not found");
-	return new var_type();
-}
-
 void printVarVal(var_type v){
 	String message = "";
 	if(v.v_type == keyword.INT || v.v_type == keyword.SHORT || v.v_type == keyword.BOOL )
@@ -320,31 +265,6 @@ void printVarVal(var_type v){
 	controller.consoleOut(message);
 
 }
-
-public boolean is_var(String var_name) {
-	int i;
-
-	if(var_name==null) return false;
-
-	if(functos==0)
-		return false;
-
-	// check if its a local variable
-	for(i=lvartos-1;i >= call_stack[functos - 1]; i--){
-	if(var_name.equals(local_var_stack[i].var_name)){
-		return true;
-	}
-	}
-
-	if(i < call_stack[functos-1]) // if not local try global
-		for(i = 0; i < gvar_index; i++)
-			if(var_name.equals(global_vars[i].var_name)){
-				return true;
-			} 
-
-	return false;
-}
-
 
 
 public void run_err() {
@@ -427,7 +347,7 @@ private boolean check_block(){
 		case INT: // declare local variables
 			lexer.putback();
 			try {
-				decl_local();
+				decl_var();
 			} catch (StopException e) {}
 			catch(SyntaxError e){
 				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
@@ -468,49 +388,7 @@ private boolean check_block(){
 
 
 //TODO add int a(5) declaration option
-// declare global
-public void decl_global() throws SyntaxError{
-		var_type i = new var_type();
-		token = lexer.get_token();
-		i.v_type = token.key; //get token type
-		var_type value;
-
-		do { // process comma separated list
-			i.value = 0; // init to 0
-			token = lexer.get_token(); //get name
-			i.var_name = new String(token.value);
-
-			//check for initialize
-			token = lexer.get_token();
-			if(token.value.equals("=")){ 
-				try {
-				value = evalOrCheckExpression(true);
-			} catch (StopException e) {
-				return;
-			}
-				if(!checkOnly){
-					i.assignVal(value);
-				}
-
-			}
-			else{
-				lexer.putback();
-			}
-
-			//push var onto stack
-			var_type v = global_push(i);
-			printVarVal(v);
-
-			token = lexer.get_token();
-		} while(token.value.equals(","));
-		if(token.value.charAt(0) != ';'){
-			sntx_err("Semicolon expected");
-			lexer.putback();
-		}
-}
-
-	/* Declare a local variable. */
-	private void decl_local() throws StopException, SyntaxError{
+private void decl_var() throws StopException, SyntaxError{
 	var_type i = new var_type();
 	token = lexer.get_token(); /* get type */
 	i.v_type = token.key;
@@ -534,9 +412,11 @@ public void decl_global() throws SyntaxError{
 		}
 
 		//push var onto stack
-		var_type v=local_push(i);
+		SymbolDiagnosis d = symbolTable.pushVar(i);
+		if(d == SymbolDiagnosis.Conflict)
+			sntx_err("Variable name: "+i.var_name+" conflicts with previous declaration");
 		if(!checkOnly)
-			printVarVal(v);
+			printVarVal(i);
 
 		token = lexer.get_token();
 	} while( token.value.charAt(0) == ',');
@@ -544,48 +424,8 @@ public void decl_global() throws SyntaxError{
 		sntx_err("Semicolon expected");
 		lexer.putback();
 	}
-	}
+}
 
-	private var_type global_push(var_type i) throws SyntaxError {
-		if(gvar_index > NUM_GLOBAL_VARS)
-			sntx_err("Too many global vars for CITRIN");
-
-		global_vars[gvar_index] = new var_type(i);
-		gvar_index++;
-		return global_vars[gvar_index-1];
-		}
-
-	private var_type local_push(var_type i) throws SyntaxError {
-		if(lvartos > NUM_LOCAL_VARS)
-			sntx_err("Too many local vars for CITRIN");
-
-		local_var_stack[lvartos] = new var_type(i);
-		lvartos++;
-		return local_var_stack[lvartos-1];
-	}
-
-	public var_type find_var(String var_name) throws SyntaxError { 
-		int i;
-
-		if(functos == 0){
-			sntx_err("Variable " + var_name +" not found");
-		}
-		// check if its a local variable
-		for(i=lvartos-1;i >= call_stack[functos - 1]; i--){
-			if(var_name.equals(local_var_stack[i].var_name)){
-			return local_var_stack[i];
-			}
-		}
-
-			if(i < call_stack[functos-1]) // if not local try global
-			for(i = 0; i < gvar_index; i++)
-				if(var_name.equals(global_vars[i].var_name)){
-						return global_vars[i];
-					}
-
-			sntx_err("Variable " + var_name +" not found");
-		return new var_type();
-	}
 
 
 	void exec_while() throws StopException, SyntaxError{
@@ -825,11 +665,11 @@ boolean check_do() {
 					if(token.value.charAt(0) != '(') { //must be a global var
 						lexer.index = tempIndex; //return to start of declaration
 						try {
-						decl_global();
+						decl_var();
 					} catch (SyntaxError e) {
 						controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
 						syntaxGood = false;
-					}
+					} catch (StopException e) { }
 					}
 					else{ //must be a function
 						try {
@@ -854,33 +694,17 @@ boolean check_do() {
 							controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
 							syntaxGood = false;
 						}
-							int lvartemp = lvartos; //save local var stack index
-							try {
-							func_push(lvartemp); //save local var stack index
-						} catch (SyntaxError e) {
-							controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
-							syntaxGood = false;
-						} 
+						symbolTable.pushFuncScope(func_table[func_index-1].func_name);
 							ArrayList<var_type> params = func_table[func_index-1].params; //get set of params
 							for(int i=0;i<params.size();i++){
 								var_type v = new var_type();
 								v.v_type = params.get(0).v_type;
 								v.var_name = params.get(0).var_name;
-								try {
-								local_push(v);
-							} catch (SyntaxError e) {
-								controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
-								syntaxGood = false;
-							}
+								symbolTable.pushVar(v);
 							}  
 
 							syntaxGood = syntaxGood && check_block();					
-							try {
-							lvartos = func_pop();
-						} catch (SyntaxError e) {
-							controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
-							syntaxGood = false;
-						}
+							symbolTable.popScope();
 
 					}
 				}
@@ -930,7 +754,9 @@ boolean check_do() {
 					token = lexer.get_token();
 					if(token.value.charAt(0) != '(') { //must be a global var
 						lexer.index = tempIndex; //return to start of declaration
-						decl_global();
+						try {
+							decl_var();
+						} catch (StopException e) { }
 					}
 					else{ //must be a function
 						func_table[func_index] = new func_type();
@@ -954,7 +780,6 @@ boolean check_do() {
 	 before the arguments to the function)*/
 	var_type call(String func_name) throws StopException, SyntaxError{
 		int loc, temp;
-		int lvartemp;
 		ret_value = null;
 		ArrayList<var_type> args, params;
 		args = get_args();
@@ -969,9 +794,8 @@ boolean check_do() {
 			sntx_err("Function: "+func_name+"has not been defined");
 		}
 		else {
-			lvartemp = lvartos; //save local var stack index
 			temp = lexer.index; //save return location
-			func_push(lvartemp); //save local var stack index
+			symbolTable.pushFuncScope(func_name);
 			lexer.index = loc; //reset prog to start of function
 			params = func_table[func_index].params; //get set of params
 			putParamsOnStack(args,params);
@@ -981,7 +805,7 @@ boolean check_do() {
 				interp_block(block_type.FUNCTION,true); //run the function
 
 			lexer.index = temp; //reset the program index
-			lvartos = func_pop();
+			symbolTable.popScope();
 		}
 
 		//TODO VOID FUNCTIONS!
@@ -1027,7 +851,7 @@ boolean check_do() {
 			v.var_name = params.get(0).var_name;
 			v.assignVal(args.get(0));
 			printVarVal(v);
-			local_push(v);
+			symbolTable.pushVar(v);
 		}  
 	}
 
@@ -1125,20 +949,6 @@ boolean check_do() {
 			//TODO need to do something about void functions		
 			ret_value = new var_type(value); 
 			return syntaxGood;
-	}
-
-	int func_pop() throws SyntaxError{
-		functos--;
-		if(functos<0) 
-			sntx_err("Unkown error");
-		return call_stack[functos];  
-	}
-
-	void func_push(int i) throws SyntaxError{
-		if(functos>=NUM_FUNC)
-			sntx_err("Too many functions for CITRIN");
-		call_stack[functos] = i;
-		functos++;
 	}
 
 	boolean isUserFunc(String name){
@@ -1266,7 +1076,7 @@ boolean check_do() {
 	}
 
 	private var_type evalOrCheckExpression(boolean commasAreDelimiters) throws SyntaxError, StopException {
-		ExpressionEvaluator exp = new ExpressionEvaluator(this);
+		ExpressionEvaluator exp = new ExpressionEvaluator(this, symbolTable);
 		if(checkOnly)
 			return exp.check_expr(commasAreDelimiters);
 		else

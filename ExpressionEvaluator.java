@@ -11,6 +11,7 @@ public class ExpressionEvaluator {
 	private Lexer lexer = null;	
 	private Lexer.Token token;
 	private boolean checkOnly = false;
+	private SymbolTable symbolTable;
 
 	public static final String EQ = "==";
 	public static final String LT = "<";	
@@ -24,9 +25,10 @@ public class ExpressionEvaluator {
 	private ExpressionEvaluator(){
 	}
 
-	public ExpressionEvaluator(Interpreter i){
+	public ExpressionEvaluator(Interpreter i, SymbolTable s){
 		interpreter = i;
 		lexer = interpreter.lexer;
+		symbolTable = s;
 	}
 
 	//entry point into parser
@@ -711,7 +713,9 @@ public class ExpressionEvaluator {
 				 // if value is not a reference
 				 value.lvalue = false;
 			}
-		  else value = interpreter.find_var(token.value); // get var's value
+		  else value = symbolTable.findVar(token.value); // get var's value
+		  if(value==null)
+			  interpreter.sntx_err("Variable: "+token.value+" has not been declared");
 		  value.lvalue = true;
 		  token = lexer.get_token();
 		  return value;

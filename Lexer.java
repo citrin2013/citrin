@@ -525,7 +525,7 @@ public class Lexer {
 			return a==0;
 		}
 
-		@Deprecated
+		/*@Deprecated
 		// Just for SymbolTableDriver for SymbolTable demo.
 		// This function should never be used elsewhere.
 		public SymbolData toSymbol()
@@ -565,7 +565,7 @@ public class Lexer {
 			ps.print(key);
 			ps.print(">");
 			ps.println();
-		}
+		}*/
 
 	}
 }

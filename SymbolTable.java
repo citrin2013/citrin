@@ -1,585 +1,116 @@
-import java.util.Vector;
-import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
 
-import java.io.*; // For debugging
 
-// ---------------------------------------------------------------------------
-// Overview
-//
-//		Variables within a program are often sorted out by scope. Each scope
-//		limits a visibility within a program. The class SymbolTable in this
-//		package offers a control to create such scopes. 
-//
-//		SymbolTable consists of Scopes 
-//
-//		Scope consists of 
-//			
-//			Symbols in the scope within HashMap of <String, Symbol>
-//
-//			1 parent (Scope)
-//
-//			0..* childrens (Scopes)
-//
-//			This is like a tree structure. The visibility of a scope is the
-//			symbols within itself and symbols in its parent scope, grandparent
-//			scope, and so on.
-//			
-//
-//		Symbol consists of 
-//
-//			SymbolLocation 
-//
-//				location in C++ source code (line number and column number)
-//
-//			SymbolData
-//
-//				data for the symbol such as int,bool,...
-//			
-//
-//	See Also 
-//
-//		SymbolTableDriver
-//
+//Symbol Auxilaries
 
-// ---------------------------------------------------------------------------
-// Manifest
-//
-//		Symbol Name/Key = String
-//
-//		Symbol 
-//
-//			SymbolData : abstract
-//
-//			SymbolLocation
-//
-//		Scope
-//
-//		SymbolTable
-//
-
-// ---------------------------------------------------------------------------
-// Known Bugs
-//
-// [ ] insertSymbol() does not return SymbolDiagnosis.Conflict properly
-//
-
-// ---------------------------------------------------------------------------
-// TODO
-//	
-//	[ ] scopes in SymbolTable should probably contain top level Scope instances
-//	    so pushScope() should not add child to its vector
-//	
-//	[ ] Name SymbolLocation just Location ?
-//	
-//	[ ] level of symbol
-//
-//	[ ] symbol diagnosis
-//
-//	[ ] SymbolDiagnosis diagnozeSymbol(SymbolData sym);
-//
-//	[ ] SymbolDiagnosis insertSymbol(String key, SymbolLocation loc, SymbolData data); 
-//
-//	[ ] dumpVisibleScope()
-//
-//	[ ] typecheck on assignSymbol()
-//
-//	[ ] make assignSymbol this throw exception
-//
-//	[ ] In which class should SymbolLocation be contained ?
-//
-//	[ ] accomodate user defined types 
-//
-//		class and struct
-//		
-//	[ ] accomodate all the c++ predefined types including long and other weird
-//	    stuff
-//
-//	[ ] accoomidate composite types 
-//
-//		array
-//	
-//  [ ] contain address to achive reference
-//
-//	[ ] rvalue and lvalue
-//
-//	[ ] abstract Scope<T> for 
-//
-//		Scope<ClassOrStruct> 
-//
-//		Scope<SymbolData> : current one
-//
-//	[ ] Do not pop on popScope() but redirect currentScope to the parent of the
-//	currentScope so that the symbol table can preserve static variable and
-//	stuff.
-//
-//	[ ] make typestack
-//
-//	[ ] Add diagnosis to the dumpTale() result
-//
-
-// ---------------------------------------------------------------------------
-// Symbol Auxilaries
-
-// If a symbol shadows/conflicts with another symbol
+//If a symbol shadows/conflicts with another symbol
 enum SymbolDiagnosis { Healthy, Shadow, Conflict }
 
-// Location in the source code
-class SymbolLocation {
-
-	SymbolLocation(int lnum, int cnum)
-	{
-		this.lnum = lnum;
-		this.cnum = cnum;
-	}
-
-	int lnum; // line number
-	int cnum; // column number
-}
-
-// ---------------------------------------------------------------------------
-// SymbolData
-
-abstract class SymbolData {
-
-	enum TypeTag { 
-		// builtins
-		Bool,
-		Char,
-		Short,
-		Int,
-		Double,
-		Float, 
-		// indirection
-		Reference,
-		Pointer,
-		// user defined types
-		Class,
-		Struct
-	}
-
-	SymbolData() 
-	{
-	}
-
-	public void print(PrintStream ps)
-	{
-		ps.print("SymbolData::print()");
-	}
-	
-	// abstract boolean equalByType(SymbolData rhs);
-
-	// abstract boolean equalByValue(SymbolData rhs);
-
-	// abstract boolean equalByAddress(SymbolData rhs); 
-	
-	// static typeAsString();
-	
-	// valueAsString();
-
-	// private boolean staticType;
-	// private TypeTag tag;
-}
-
-class DebugSymbol extends SymbolData {
-	DebugSymbol(String debug) 
-	{
-		this.debug = debug;
-	}
-
-	public void print(PrintStream ps)
-	{
-		ps.print(debug);
-	}
-
-	public String toString() 
-	{
-		return debug;
-	}
-
-	String debug;
-}
-
-class Bool extends SymbolData {
-	Bool(boolean value)
-	{
-		this.value = value;
-	}
-
-	public void print(PrintStream ps)
-	{
-		ps.print(value);
-	}
-	
-	// private TypeTag tag = TypeTag.Bool;
-	private boolean value;
-}
-
-class Char extends SymbolData {
-	Char(char value)
-	{
-		this.value = value;
-	}
-
-	public void print(PrintStream ps)
-	{
-		ps.print(value);
-	}
-
-	// private TypeTag tag = TypeTag.Char;
-	private char value;
-}
-
-class Short extends SymbolData {
-	Short(short value)
-	{
-		this.value = value;
-	}
-
-	public void print(PrintStream ps)
-	{
-		ps.print(value);
-	}
-
-	// private TypeTag tag = TypeTag.Short;
-	private short value;
-}
-
-class Int extends SymbolData {
-	Int (int value)
-	{
-		this.value = value;
-	}
-
-	public void print(PrintStream ps)
-	{
-		ps.print(value);
-	}
-
-	// private TypeTag tag = TypeTag.Int;
-	private int value;
-}
-
-class Float extends SymbolData {
-	Float(float value)
-	{
-		this.value = value;
-	}
-	public void print(PrintStream ps)
-	{
-		ps.print(value);
-	}
-
-	// private TypeTag tag = TypeTag.Float;
-	private float value;
-}
-
-class Double extends SymbolData {
-	Double(double value)
-	{
-		this.value = value;
-	}
-	public void print(PrintStream ps)
-	{
-		ps.print(value);
-	}
-
-	// private TypeTag tag = TypeTag.Double;
-	private double value;
-}
-
-class Pointer extends SymbolData {
-	Pointer(SymbolData pointee) 
-	{
-		this.pointee = pointee;
-	}
-	public void print(PrintStream ps)
-	{
-		ps.print(pointee);
-	}
-
-	// private TypeTag tag = TypeTag.Pointer;
-	private SymbolData pointee;
-}
-
-class ClassOrStruct extends SymbolData {
-	ClassOrStruct(Vector<SymbolData> fields)
-	{
-		this.fields = fields;
-	}
-	
-	public void print(PrintStream ps)
-	{
-		ps.print(fields);
-	}
-
-	// private TypeTag tag = TypeTag.Class;
-	Vector<SymbolData> fields;
-}
-
-class Reference extends SymbolData {
-	Reference(SymbolData referee)
-	{
-		this.referee = referee;
-	}
-
-	public void print(PrintStream ps)
-	{
-		ps.print(referee);
-	}
-
-	// private TypeTag tag = TypeTag.Reference;
-	SymbolData referee;
-}
-
-// ---------------------------------------------------------------------------
-// Symbol
-class Symbol {
-	Symbol(SymbolLocation location, SymbolData data) 
-	{
-		this.location = location;
-		this.data = data;
-	}
-
-	void print(PrintStream ps) 
-	{
-		ps.print("To Implement : Symbol.print() ");		
-	}
-
-	SymbolData toData()
-	{
-		return data;
-	}
-
-	SymbolLocation location;
-	SymbolData data;
-
-}
-
-// ---------------------------------------------------------------------------
-// Scope
-class Scope {
-
-	static PrintStream stdout = new PrintStream( new FileOutputStream( FileDescriptor.out ) ); // For Debugging
-
-	Scope(String scopeName)
+class Scope{
+	Scope(String scopeName, int tableIndex)
 	{
 		this.parent = null;
 		this.name=scopeName;
-	}	
-
-	Scope(Scope parent, String scopeName)
+		lowIndex = highIndex = tableIndex;
+	}
+	
+	Scope(Scope parent, String scopeName, int tableIndex)
 	{
 		this.parent = parent;
 		name=scopeName;
-	}
-
-	SymbolDiagnosis insertSymbol(String key, Symbol sym)
-	// TODO
-	{
-		SymbolDiagnosis d = SymbolDiagnosis.Healthy;
-
-		// conflict
-		if ( this.hasSymbol(key) ) {
-			d = SymbolDiagnosis.Conflict;	
-		}
-
-		// shadow
-		if ( parent != null && parent.searchSymbol(key) != null ) {
-			d = SymbolDiagnosis.Shadow;
-		}
-
-		symbols.put(key, sym);
-		return d;
-	}
-
-	boolean assignSymbol( String key, SymbolData data )
-	{
-		Scope scope = searchScope( key );
-		if (scope != null) {
-			Symbol sym = scope.symbols.get(key);
-			sym = new Symbol( sym.location, data );
-			scope.symbols.put(key ,sym);
-			return true;
-		}
-		else {
-			return false;
-		}
-			
+		lowIndex = highIndex = tableIndex;
 	}
 	
-	private Scope searchScope(String key) 
-	{
-		Scope scope = this;
-		while (scope.parent != null) {
-			if ( scope.hasSymbol(key) ) {
-				// return symbols.get(key);	
-				return scope;
-			}
-			scope = scope.parent;
-		}
-		
-		return (scope == null) ? null : scope ;
-			
-	}
-
-	// @Deprecated
-	Symbol searchSymbol(String key) 
-	{
-		// System.out.println("inside searchSymbol("+key+")");
-
-		Scope scope = this;
-		while (scope != null) {
-			if ( scope.hasSymbol(key) ) {
-				Symbol sym = scope.symbols.get(key);	
-				return sym;
-			}
-			scope = scope.parent;
-		}
-		
-		return (scope == null) ? null : scope.symbols.get(key) ;
-						
-	}
-
-	boolean hasSymbol(String key) 
-	{
-		return symbols.containsKey(key);
-	}
-
-	void print(PrintStream ps)
-	{
-		ps.println("");
-		ps.println("ScopeName    : "+name);
-		ps.print  ("Parent Scope : ");
-		if ( parent == null ) {
-			ps.println("None");
-		}
-		else {
-			ps.println(parent.name);
-		}
-		for ( Map.Entry<String,Symbol> e : symbols.entrySet() ) {
-			// e.getKey().print(ps);
-			ps.print( e.getKey() );
-			ps.print(" : ");
-			// e.getValue().print(ps);
-			ps.print( e.getValue().toData().toString() );
-			ps.println("");
-		}
 	
-	}
-
-	void printAll(PrintStream ps)
-	{
-		this.print(ps);
-		if (children.isEmpty()) {
-			// ps.println( "no children" );
-			;
-		}
-		else {
-			for ( Scope scope : children ) {
-				scope.printAll(ps);
-			}
-		}
-	}
-	
-	// SortedMap<String, SymbolData> symbols = new TreeMap<String, SymbolData>();
-	// Map<String, SymbolData> symbols = new ConcurrentHashMap<String, SymbolData>();
-	Map<String, Symbol> symbols  = new HashMap<String, Symbol>();
-	Scope               parent   = null;
-	Vector<Scope>       children = new Vector<Scope>();
-	String              name;
+	String name;
+	Scope parent;
+	int lowIndex;
+	int highIndex;
 }
 
-// ---------------------------------------------------------------------------
-// SymbolTableImplementation
-class SymbolTable {
+public class SymbolTable {
 
-	SymbolTable(String topScopeName) 
-	{
-		Scope topScope = new Scope(null, topScopeName);
-		currentScope = topScope;
-		scopes.add(topScope);
-	}
-
-	public SymbolDiagnosis insertSymbol(String key, Symbol sym) 
-	{
-		return currentScope.insertSymbol(key,sym);
-	}
-
-	public Symbol searchSymbol(String key)
-	{
-		return currentScope.searchSymbol(key);
-	}
-
-	public boolean assignSymbol(String key, SymbolData sym)
-	{
-		return currentScope.assignSymbol(key,sym);
-	}
-
-	public void pushParallelScope(String scopeName)
-	{
-		// System.out.println(currentScope.parent.name);
-
-		// if current scope is on the top level
-		if ( currentScope.parent == null ) { 
-			Scope newScope  = new Scope(scopeName);
-			scopes.addElement(newScope);	
-		}	
-		// else make the new scope sibling of the parent's children
-		else {
-			Scope newScope  = new Scope(currentScope.parent, scopeName);
-			currentScope.parent.children.addElement(newScope);
-			currentScope = newScope;
-		}
-	}
-
-	public void pushScope(String scopeName)
-	{
-		Scope newScope  = new Scope(currentScope, scopeName);
-		currentScope.children.add(newScope);
-		// scopes.addElement(newScope);
-		currentScope = newScope;
-	}
-
-	// public void pushScope(String scopeName, int level)
-
-	public void popScope()
-	// TODO
-	// Should not pop but redirect current scope to parent scope
-	{
-		if (currentScope == null) {
-			System.out.println("popScope() : ERROR");
-		}
-		// else if (currentScope) {
-		// 	System.out.println("popScope() : ERROR");
-		// }
-		currentScope.parent.children.removeElementAt( currentScope.parent.children.size() -1 );
-		currentScope = currentScope.parent;
-		scopes.removeElementAt(scopes.size()-1);
-	}
-
-	public void dumpTable(PrintStream ps)
-	{
-
-		ps.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> SymbolData Table Dump Start");
-		ps.println("NUmber of scopes : " + scopes.size());
-		ps.println("");
- 
-		if ( scopes.isEmpty() )  {
-			ps.println("dumpTable: SymbolTable is empty.");		
-		}
-		else {
-			for (Scope scope : scopes) {
-				scope.printAll(ps);
-			}
-//			Scope topScope = scopes.elementAt(0);
-//			topScope.printAll(ps);
-		}
-		ps.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SymbolData Table Dump END");
+	public ArrayList<Scope> scopeStack;
+	public ArrayList<var_type> varStack;
+	public Scope currentScope;
+	public Scope globalScope;
+	
+	
+	
+	public SymbolTable(){
+		varStack = new ArrayList<var_type>();
+		scopeStack = new ArrayList<Scope>();
+		currentScope = globalScope =  new Scope("Global", 0);
+		scopeStack.add(currentScope);
 	}
 	
-	private Vector<Scope> scopes = new Vector<Scope>();
-	// private Vector<ClassOrStruct> typeStack = new Vector<ClassOrStruct>();
-	private Scope currentScope;
-}
+	// function to find a variable, calls private function which searches recursively
+	public var_type findVar(String var_name){
+		return findVar(var_name, currentScope);
+	}
+	
+	// function which searches current scope and its parent's scope and its grandparent's scope...
+	private var_type findVar(String name, Scope scope){
+		for(int i=scope.lowIndex; i<scope.highIndex; i++){
+			if(varStack.get(i).var_name.equals(name))
+				return varStack.get(i);
+		}
+		
+		if(scope.parent==null)
+			return null;
+		else
+			return findVar(name, scope.parent);
+	}
+	
+	// push a new scope with the parent set as the global scope
+	public void pushFuncScope(String funcName){
+		currentScope = new Scope(globalScope, funcName, varStack.size());
+		scopeStack.add(currentScope);
+	}
 
+	// push a new scope with the parent as the current scope
+	public void pushLocalScope(){
+		currentScope = new Scope(currentScope, null, varStack.size());
+		scopeStack.add(currentScope);
+	}
+	
+	// pops the top element off the scope stack, removes all of its vars form the stack
+	public void popScope(){
+		for(int i=currentScope.highIndex-1; i>=currentScope.lowIndex; --i){
+			varStack.remove(i);
+		}
+		scopeStack.remove(scopeStack.size()-1);
+		currentScope = scopeStack.get( scopeStack.size()-1 );
+	}
+	
+	// pushes a variable onto the stack, checks for variables with the same name
+	// returns either healthy, shadow or conflict
+	public SymbolDiagnosis pushVar(var_type v){
+		//check if there is a variable visible with the same name
+		boolean nameMatch;
+		if(findVar(v.var_name)==null)
+			nameMatch = false;
+		else
+			nameMatch = true;
+		
+		// check if variable is a conflict
+		if(nameMatch){
+			for(int i=currentScope.lowIndex; i<currentScope.highIndex; ++i){
+				if(varStack.get(i).var_name.equals(v.var_name))
+					return SymbolDiagnosis.Conflict;	
+			}
+		}
+		
+		// add variable to varStack
+		currentScope.highIndex++;
+		varStack.add(new var_type(v));
+		
+		//return diagnosis
+		if(nameMatch)
+			return SymbolDiagnosis.Shadow;
+		else
+			return SymbolDiagnosis.Healthy;
+	}
+	
+	
+}
