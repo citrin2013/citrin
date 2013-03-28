@@ -21,19 +21,14 @@ public class Controller {
 	}
 	
 	public synchronized void consoleOut(String message){
-		interpretation+=message;
+		 interpretation+=message;
+		 final String messageCopy = new String(message);
 
 		 EventQueue.invokeLater(new Runnable() { 
 		   @Override
 		   public void run() {
-			    Document doc = null;
-			    doc = new PlainDocument();
-			    try { 
-			      doc.insertString(0, interpretation, null);
-			    } catch ( BadLocationException badloc ) {
-			      System.out.println( "Bad offset requested : " + badloc.offsetRequested() );
-			    }
-			    console.setDocument(doc);
+			    console.append(messageCopy);
+			    console.setCaretPosition(console.getDocument().getLength());
 		   }
 		 });
 	}
