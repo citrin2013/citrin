@@ -58,11 +58,6 @@ public class Controller {
 	    	  public void run() {
 	    		    Document doc = null;
 	    		    doc = new PlainDocument();
-	    		    try { 
-	    		      doc.insertString(0, interpretation, null);
-	    		    } catch ( BadLocationException badloc ) {
-	    		      System.out.println( "Bad offset requested : " + badloc.offsetRequested() );
-	    		    }
 	    		    console.setDocument(doc);
 	    	  }
 	    	});
