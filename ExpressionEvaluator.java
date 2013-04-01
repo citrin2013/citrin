@@ -692,6 +692,7 @@ public class ExpressionEvaluator {
 	private var_type atom() throws StopException, SyntaxError {
 	  //int i=0;
 	  var_type value = new var_type();
+	  Symbol symbol;
 	  switch(token.type){
 		case IDENTIFIER:
 		  /*TODO:
@@ -713,9 +714,14 @@ public class ExpressionEvaluator {
 				 // if value is not a reference
 				 value.lvalue = false;
 			}
-		  else value = symbolTable.findVar(token.value); // get var's value
-		  if(value==null)
-			  interpreter.sntx_err("Variable: "+token.value+" has not been declared");
+		  else {
+			  symbol = symbolTable.findVar(token.value); // get var's value
+			  if(symbol==null)
+				  interpreter.sntx_err("Variable: "+token.value+" has not been declared");
+			  else
+				  value = symbol.data;
+			  
+		  }
 		  value.lvalue = true;
 		  token = lexer.get_token();
 		  return value;

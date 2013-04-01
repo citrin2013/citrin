@@ -555,7 +555,7 @@ public class Lexer {
 				sym = new DebugSymbol( "DEBUG" ) ;
 			}
 			return sym;
-		}
+		}*/
 
 		public void print(PrintStream ps) 
 		{
@@ -565,7 +565,7 @@ public class Lexer {
 			ps.print(key);
 			ps.print(">");
 			ps.println();
-		}*/
+		}
 
 	}
 }

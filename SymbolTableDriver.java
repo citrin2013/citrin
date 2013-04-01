@@ -47,71 +47,69 @@ public class SymbolTableDriver {
 		//
 		//      SymbolData Table Construction
 		//
-		SymbolTable stab = new SymbolTable("Global");
+		SymbolTable stab = new SymbolTable();
 
 		SymbolLocation loc  = new SymbolLocation(1, 1); // line number and column number
-		String      key  = "foo";
-		SymbolData  data = new DebugSymbol("debug");
+		var_type  data = new var_type();
+		data.v_type = keyword.INT;
+		data.var_name = "debug";
 		Symbol sym	= new Symbol(loc, data);
-		stab.insertSymbol( key, sym );
+		stab.pushSymbol( sym );
 
-		key  = new String("main");
-		data = new DebugSymbol("debug");
+		data.var_name  = new String("main");
 		sym	= new Symbol(loc, data);
-		stab.insertSymbol( key, sym );
+		stab.pushSymbol( sym );
+
+		//
+		//      Push main
+		//
+		stab.pushFuncScope("main");
+
+		data.var_name  = new String("foo");
+		sym	= new Symbol(loc, data);
+		stab.pushSymbol( sym );
 
 		//
 		//      Push
 		//
-		stab.pushScope("main");
+		stab.pushFuncScope("test");
 
-		key  = new String("foo");
-		data = new DebugSymbol("debug");
+		data.var_name  = new String("buzz");
 		sym	= new Symbol(loc, data);
-		stab.insertSymbol( key, sym );
+		stab.pushSymbol( sym );
 
-		//
-		//      Push
-		//
-		stab.pushScope("nakedscope1");
-
-		key  = new String("buzz");
-		data = new DebugSymbol("debug");
-		sym	= new Symbol(loc, data);
-		stab.insertSymbol( key, sym );
-
-		// key  = new String("foo");
+		// data.var_name  = new String("foo");
 		// sym = new DebugSymbol("debug");
-		// stab.insertSymbol( key, sym );
+		// stab.pushSymbol( data.var_name, sym );
 
 		//
 		//      Modify Value
 		//
 		// sym = stab.searchSymbol(new String("foo") );
-		data = new Bool( true );
+		data.v_type = keyword.BOOL;
 		sym	= new Symbol(loc, data);
-		// stab.assignSymbol( key,  sym );
-		// stab.assignSymbol(new String("foo"),  sym ); 
-		stab.assignSymbol("foo",  data ); 
+		// stab.assignVar( data.var_name,  sym );
+		// stab.assignVar(new String("foo"),  sym ); 
+		stab.assignVar("foo",  data ); 
 		
 		//
 		//      Dump
 		//
-		stab.dumpTable(stdout);
+//TODO		stab.dumpTable(stdout);
 
 		//
 		//      Pop
 		//
 		stab.popScope();
-		key = new String("bar");
-		data = new DebugSymbol("debug");
+		data.var_name = new String("bar");
+		//data = new DebugSymbol("debug");
 		sym	= new Symbol(loc, data);
-		stab.insertSymbol( key, sym );
+		stab.pushSymbol( sym );
 
 		//
 		//      Dump
 		//
-		stab.dumpTable(stdout);
+//TODO		stab.dumpTable(stdout);
 
 
 		//
@@ -122,7 +120,7 @@ public class SymbolTableDriver {
 		//
 		//      Dump
 		//
-		stab.dumpTable(stdout);
+//TODO		stab.dumpTable(stdout);
 		
 	} 
 	
@@ -143,7 +141,7 @@ public class SymbolTableDriver {
 		// When symbol stable is constructed, it creates one scope with the
 		// name supplied in the constructor argument. Ie. "Global" will the
 		// name of the top scope in this symbol stable
-		SymbolTable stable = new SymbolTable("Global");
+		SymbolTable stable = new SymbolTable();
 
 		//
 		//      Construct Lexer 
@@ -179,7 +177,7 @@ public class SymbolTableDriver {
 					//      Dump before Pop on '}'
 					//
 					stdout.println("Dumping symbol table before pop on }");
-					stable.dumpTable( stdout );
+//TODO					stable.dumpTable( stdout );
 					stdout.println("");
 
 					//
@@ -192,14 +190,14 @@ public class SymbolTableDriver {
 					//      Dump after Pop on '}'
 					//
 					stdout.println("Dumping symbol table after pop on }");
-					stable.dumpTable( stdout );
+//TODO					stable.dumpTable( stdout );
 				}
 				else if ( token.value.equals("{") ) {
 					//
 					//      Push Scope
 					//
 					stdout.print("Pushing a new scope into the symbol table");
-					stable.pushScope(""+ (counter++) );
+					stable.pushFuncScope(""+ (counter++) );
 				}
 				else {
 					stdout.print("SHOULD NOT HAPPEDN");
@@ -219,19 +217,18 @@ public class SymbolTableDriver {
 				// System.out.println( loc.lnum );
 				// System.out.println( loc.cnum );
 
+				var_type       data = new var_type();
 				String         name = token.value;			// 
-				String         key  = new String(name);
+				data.var_name  = new String(name);
 
-				// Construct SymbolData (Value)
-				//
-				//		NEVER USE hackish toSymbol() elsewhere
-				//
-				SymbolData data = token.toSymbol();
+				// Construct var_type (Value)
+				data.v_type = token.key;
+				data.value = 0;
 
 				Symbol sym = new Symbol( loc, data );
 
 				// Insert into symbol table
-				SymbolDiagnosis d = stable.insertSymbol(key, sym);
+				SymbolDiagnosis d = stable.pushSymbol(sym);
 
 				stdout.print("Diagnosis : "+ d);
 
@@ -259,34 +256,33 @@ public class SymbolTableDriver {
 	static void SymbolTest3()
 	{
 
-		SymbolTable stab = new SymbolTable("Global");
+		SymbolTable stab = new SymbolTable();
 
 		// Symbol
-		SymbolLocation loc  = new SymbolLocation(1, 1); 
-		String         key  = "foo";                    
-		SymbolData     data = new DebugSymbol("foo in global"); 
+		SymbolLocation loc  = new SymbolLocation(1, 1);            
+		var_type     data = new var_type();
+		data.var_name = "foo";
+		data.value = 0;
+		data.v_type = keyword.INT;
 		Symbol         sym  = new Symbol(loc, data);   
 
 		// Insert symbol foo="foo in global" into Global scope
-		stab.insertSymbol( key, sym );
+		stab.pushSymbol( sym );
 			
 		// Insert symbol foo="foo in Function 1" in to the Function1 Scope
-		stab.pushScope("Function1");
-		data = new DebugSymbol("foo in Function1");
+		stab.pushFuncScope("Function1");
+		data.var_name = "foo in Function1";
 		sym  = new Symbol(loc, data);
-		stab.insertSymbol( key, sym );
-
-		// Insert symbol foo="foo in Function2" in to the Function2 Scope
-		stab.pushParallelScope("Function2");
+		stab.pushSymbol( sym );
 
 		// debug
-		stab.dumpTable(stdout);
+//TODO		stab.dumpTable(stdout);
 
 		// 
 		stdout.print("Now the searchSymbol(\"foo\") = ");
-		Symbol foo = stab.searchSymbol("foo");
+		Symbol foo = stab.findVar("foo");
 		if ( foo != null ) {
-			stdout.println(foo.toData().toString());
+			stdout.println(foo.data.value);
 		}
 		else {
 			stdout.println("null");
@@ -296,7 +292,7 @@ public class SymbolTableDriver {
 
 	public static void main(String[] arg) {
 
-		int path = 3;
+		int path = 2;
 
 		if (path==0) {
 			LexTest();

@@ -389,14 +389,16 @@ private boolean check_block(){
 
 //TODO add int a(5) declaration option
 private void decl_var() throws StopException, SyntaxError{
-	var_type i = new var_type();
 	token = lexer.get_token(); /* get type */
-	i.v_type = token.key;
+	keyword type = token.key;
 	var_type value;
 
 	do { /* process comma-separated list */
+		var_type i = new var_type();
+		i.v_type = type;
 		i.value = 0; /* init to 0 should remove this*/
 		token = lexer.get_token(); /* get var name */
+		SymbolLocation loc = new SymbolLocation(lexer.getLineNum(),lexer.getColumnNum());
 		i.var_name = new String(token.value);
 
 		//check for initialize
@@ -412,9 +414,12 @@ private void decl_var() throws StopException, SyntaxError{
 		}
 
 		//push var onto stack
-		SymbolDiagnosis d = symbolTable.pushVar(i);
-		if(d == SymbolDiagnosis.Conflict)
-			sntx_err("Variable name: "+i.var_name+" conflicts with previous declaration");
+		SymbolDiagnosis d = symbolTable.pushSymbol(new Symbol(loc, i));
+		if(d == SymbolDiagnosis.Conflict){
+			SymbolLocation conflictLocation = symbolTable.findVar(i.var_name).location;
+			sntx_err("Variable name \""+i.var_name+"\" conflicts with previous declaration at line " + 
+			conflictLocation.lnum + " of \"" + i.var_name + "\"");
+		}
 		if(!checkOnly)
 			printVarVal(i);
 
@@ -700,7 +705,8 @@ boolean check_do() {
 								var_type v = new var_type();
 								v.v_type = params.get(0).v_type;
 								v.var_name = params.get(0).var_name;
-								symbolTable.pushVar(v);
+								SymbolLocation loc = new SymbolLocation(-1,-1);//TODO parameter, should do something
+								symbolTable.pushSymbol(new Symbol(loc, v));
 							}  
 
 							syntaxGood = syntaxGood && check_block();					
@@ -851,7 +857,8 @@ boolean check_do() {
 			v.var_name = params.get(0).var_name;
 			v.assignVal(args.get(0));
 			printVarVal(v);
-			symbolTable.pushVar(v);
+			SymbolLocation loc = new SymbolLocation(-1,-1);//TODO parameter, should do something
+			symbolTable.pushSymbol(new Symbol(loc, v));
 		}  
 	}
 
