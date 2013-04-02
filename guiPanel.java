@@ -21,6 +21,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -40,6 +41,7 @@ import javax.swing.JToolBar;
 import javax.swing.JToolTip;
 import javax.swing.UIManager;
 import javax.swing.text.*;
+import javax.swing.text.Highlighter.HighlightPainter;
 import javax.swing.undo.AbstractUndoableEdit;
 
 public class guiPanel extends JPanel	implements ActionListener {
@@ -71,6 +73,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 	//Menu Items for Help
 	private JMenuItem tutorial;
+	private JMenuItem about;
 
 
 	//constructor
@@ -100,7 +103,8 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 		//help menu
 		tutorial = new JMenuItem("Tutorial");
-
+		about = new JMenuItem("About");
+		
 		//add the menus to the menu bar
 		topBar.add(fileMenu);
 		topBar.add(editMenu);
@@ -123,6 +127,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 
 		helpMenu.add(tutorial);
+		helpMenu.add(new ShowAbout());
 
 		JPanel	myPanel = new JPanel();
 
@@ -135,10 +140,11 @@ public class guiPanel extends JPanel	implements ActionListener {
 		area.setEditable(true);
 
 		JToolBar editToolBar = new JToolBar();
+		
 
 		//add edit buttons to menu
 		// TODO: get undo/redo working, need undomanager and listner; look at swing.undo
-		editMenu.add(undo);
+		editMenu.add(undo); 
 		editMenu.add(redo);
 		editMenu.addSeparator();
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.cutAction));
@@ -176,9 +182,22 @@ public class guiPanel extends JPanel	implements ActionListener {
 		cutAction.putValue(Action.SMALL_ICON, new ImageIcon("cut.gif"));
 		cutAction.putValue(Action.NAME, "");
 
-		editToolBar.add(cutAction);
-		editToolBar.add(copyAction);
-		editToolBar.add(pasteAction);
+		JButton cut = new JButton(cutAction);
+		cut.setToolTipText("Cut (Ctrl+X)");
+		JButton copy = new JButton(copyAction);
+		copy.setToolTipText("Copy (Ctrl+C)");
+		JButton paste =  new JButton(pasteAction);
+		paste.setToolTipText("Paste (Ctrl+V)");
+		JButton runAll = new JButton(new RunAllActionButton());
+		runAll.setToolTipText("Run All");
+		JButton runStep = new JButton(new StepActionButton());
+		runStep.setToolTipText("Run Step");
+
+		editToolBar.add(cut);
+		editToolBar.add(copy);
+		editToolBar.add(paste);
+		editToolBar.add(runAll);
+		editToolBar.add(runStep);
 
 		// To Do: Get style menu working
 		/*Action action = new StyledEditorKit.BoldAction();
@@ -236,7 +255,8 @@ public class guiPanel extends JPanel	implements ActionListener {
 		runMenu.add(new RunAllAction(console));
 		runMenu.add(new StepAction(console));
 
-		editToolBar.add(new RunAllActionButton());
+
+
 
 		JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane3, tabbedPane2);
 
@@ -457,7 +477,33 @@ public class guiPanel extends JPanel	implements ActionListener {
 		}
 	}
 
+	class ShowAbout extends AbstractAction{
+	
+		public ShowAbout() {
+			super("About");
+		}
+		@Override
+		public void actionPerformed(ActionEvent ev) {
+			//display a window with text
+		//	JOptionPane x = new JOptionPane();
+			JOptionPane.showMessageDialog(null, 
+					"CITRIN is an interactive interpreter designed for beginning C++ students.\n" +
+					"The user can edit code in the 'Program' tab. The user can run the interpreter\n" +
+					"with RunAll which runs through the enitre program. The user can step through\n" +
+					"the program using RunStep which interprets one line at a time.\n" +
+					"The 'Console' tab displays the interpretation of each line.\n" +
+					"The 'States' tab displays the current value of the variables and\n" +
+					"which variables are in scope and which are inactive.\n\n" +
+					"University of Nevada, Reno\n" +
+					"College of Engineering" +
+					"\nSenior Project\n" +
+					"Team 07: Shaun Davidson, Jessica Hall, Yuta Matsumoto, Chris Salls\nExternal Advisor: Michael Leveringoton\nInstructor: Sergiu Dascalu");
+			
+		}
+		
+	}
 	// An action that runs the interpreter on all the contents of the current cpp source file
+	//TODO: add printVarVal(var_type var) to this
 	class RunAllAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
@@ -527,6 +573,36 @@ class RunAllActionButton extends AbstractAction {
 		public StepAction(JTextComponent display) {
 			super("Step");
 			this.display = display;
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			// run interpreter on currentCppSourceFile
+
+			Interpreter i;
+			synchronized(controller){
+				if(!controller.isInterpreting()){
+					controller.clearConsole();
+					controller.setInterpretingStart();
+					new Thread(i = new Interpreter(controller,currentCppSourceFile,1)).start();
+					controller.addInterpreter(i);
+				}
+				else{
+					controller.addSteps(1);
+				}
+			}
+
+		}
+
+	}
+	
+	class StepActionButton extends AbstractAction {
+		JTextComponent display;
+	//	String interpretation = "";
+
+		public StepActionButton() {
+			super("Step");
+//			this.display = display;
 		}
 
 		@Override
