@@ -21,9 +21,20 @@ class SymbolLocation{
 
 //Symbol
 class Symbol{
+
 	Symbol(SymbolLocation location, var_type data){
 		this.location = location;
 		this.data = data;
+	}
+
+	SymbolLocation getLocation()
+	{
+		return location;
+	}
+
+	var_type getData()
+	{
+		return data;
 	}
 	
 	SymbolLocation location;

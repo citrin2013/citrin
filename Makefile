@@ -25,6 +25,10 @@ runInterpreter : Interpreter.class
 # ---------------------------------------------------------------------------
 # Compile
 
+SymbolTableNotifier.class : SymbolTable.class CitrinObserver.class
+
+DataDisplay.class : SymbolTableNotifier.class CitrinObserver.class
+
 classes: $(CLASSES:.java=.class)
 
 .java.class:

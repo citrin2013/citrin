@@ -44,26 +44,12 @@ enum SymbolTableEvent {
 };
 
 // ---------------------------------------------------------------------------
-// Workaround  : multiple inheritance 
-//
-//	SymbolTableNotifier cannot subclass both SymbolTable and Observable
-//
-
-interface CitrinObservable {
-	void notifyObservers(Object arg);		
-}
-
-interface CitrinObserver {
-	void update(CitrinObservable o, Object arg);
-};
-
-// ---------------------------------------------------------------------------
 
 class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 
 	private Symbol insertedSymbol = null;
 	private SymbolDiagnosis insertedSymbolDiagnosis = null;
-	private List observers = new ArrayList<CitrinObserver>();
+	private List<CitrinObserver> observers = new ArrayList<CitrinObserver>();
 
 	// -----------------------------------------------------------------------
 	// Constructors
@@ -88,10 +74,12 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 
 	// -----------------------------------------------------------------------
 	// CitrinObserver Pattern Methods (Observable Side)
+	//
 	
 	public void notifyObservers(Object arg)
 	{ // Java Observable uses setChanged() and stuff
 		Iterator i = observers.iterator();
+
 		CitrinObserver o;
 		while (i.hasNext()) {
 			o = (CitrinObserver) i.next();
@@ -106,7 +94,7 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 
 	public void removeObserver(CitrinObserver o)
 	{
-		System.out.println("todo removeObserver() ");
+		System.out.println("todo removeObserver()");
 	}
 
 	// -----------------------------------------------------------------------
