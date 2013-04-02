@@ -169,7 +169,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 		a = area.getActionMap().get(DefaultEditorKit.selectAllAction);
 		a.putValue(Action.NAME, "Select All");
-
+		//actions for buttons for copy,paste,cut
 		Action copyAction = new DefaultEditorKit.CopyAction();
 		copyAction.putValue(Action.SMALL_ICON, new ImageIcon("copy.gif"));
 		copyAction.putValue(Action.NAME, ""); 
