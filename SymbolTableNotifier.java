@@ -39,7 +39,7 @@ enum SymbolTableEvent {
 	scopePushedInParallel,
 	scopePushedAsChild,
 	scopePopped,
-	symbolInsreted,
+	symbolInserted,
 	symbolAssignedNewValue,
 };
 
@@ -50,6 +50,7 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 	private Symbol insertedSymbol = null;
 	private SymbolDiagnosis insertedSymbolDiagnosis = null;
 	private List<CitrinObserver> observers = new ArrayList<CitrinObserver>();
+	// private ArrayList<CitrinObserver> observers = new ArrayList<CitrinObserver>();
 
 	// -----------------------------------------------------------------------
 	// Constructors
@@ -78,8 +79,8 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 	
 	public void notifyObservers(Object arg)
 	{ // Java Observable uses setChanged() and stuff
-		Iterator i = observers.iterator();
-
+		// Iterator i = observers.iterator();
+		Iterator<CitrinObserver> i = observers.iterator();
 		CitrinObserver o;
 		while (i.hasNext()) {
 			o = (CitrinObserver) i.next();
@@ -111,7 +112,7 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 	public void pushLocalScope(){
 		super.pushLocalScope();
 		// notify here
-		notifyObservers(SymbolTableEvent.scopePushedInParallel);
+		notifyObservers(SymbolTableEvent.scopePushedAsChild);
 	}
 
 	public void popScope(){
@@ -126,8 +127,8 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 		insertedSymbolDiagnosis = super.pushSymbol(s);
 		
 		// notify SymbolTable if no conflict happens (should be compilation error)
-		// notify console if conflict happens
-		notifyObservers( SymbolTableEvent.symbolInsreted );
+		// notify console if conflict happens - interpreter will catch it during prescan so don't notify the console
+		notifyObservers( SymbolTableEvent.symbolInserted );
 
 		return insertedSymbolDiagnosis;
 
