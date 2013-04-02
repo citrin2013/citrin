@@ -146,7 +146,7 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 			else if ( e == SymbolTableEvent.scopePopped ) {
 				System.out.println("TODO : DataDiaplay::update() on scopePopped");
 			}
-			else if ( e == SymbolTableEvent.symbolInsreted ) {
+			else if ( e == SymbolTableEvent.symbolInserted ) {
 				Symbol s = stab.getInsertedSymbol();
 				SymbolLocation loc = s.getLocation();
 				var_type v = s.getData();
