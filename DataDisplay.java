@@ -69,14 +69,11 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		"name",
 		"value"
 	};
-	private Object[][] data = { 
-		// {},
-		// { "a", 1 }, 
-	};
+	private Object[][] data = {};
 
-	// Table
-	// JTable table = new JTable(); 
-	List<JTable> tables = new ArrayList<JTable>();
+	private Dimension dim;
+
+	private List<JTable> tables = new ArrayList<JTable>();
 
 	// -----------------------------------------------------------------------
 	// Constructor
@@ -86,15 +83,9 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 	public DataDisplay(Dimension dim)
 	{
 
-		JTable table = new JTable();
-		table.setModel( new DefaultTableModel(data,columnNames) );
-		tables.add( table );
+		this.dim = dim;
 
-		JPanel jpanel = new JPanel( new GridLayout(1,0) );
-
-		// config
-		table.setPreferredScrollableViewportSize(dim);
-        table.setFillsViewportHeight(true);
+		addScopeTable();
 
 		//
 		// debug
@@ -112,13 +103,26 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		// 		});
 		// 	}
 		// }
+	}
 
+	void setDimension(Dimension dim)
+	{
+		this.dim = dim;
+	}
+
+	private void addScopeTable()
+	{
+		JTable table = new JTable();
+		table.setModel( new DefaultTableModel(data,columnNames) );
+		tables.add( table );
+		table.setPreferredScrollableViewportSize(dim);
+        table.setFillsViewportHeight(true);
         //Create the scroll pane and add the table to it.
         JScrollPane scrollPane = new JScrollPane(table);
-
         //Add the scroll pane to this panel.
         add(scrollPane);
-
+		revalidate();
+		repaint();
 	}
 
 	// -----------------------------------------------------------------------
@@ -149,12 +153,21 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 			// Multiple behavior depending on event on symbol table
 			SymbolTableEvent e = (SymbolTableEvent) arg;
 			if ( e == SymbolTableEvent.scopePushedInParallel) {
+				// TODO : 
+				// Make current scope table dimmed
+				addScopeTable();
+
 				System.out.println("TODO : DataDiaplay::update() on scopePushedInParallel");
 			}
 			else if ( e == SymbolTableEvent.scopePushedAsChild ) {
+				addScopeTable();
+
 				System.out.println("TODO : DataDiaplay::update() on scopePushedAsChild");
 			}
 			else if ( e == SymbolTableEvent.scopePopped ) {
+				// TODO 
+				// what if it is a parellel scope 
+				tables.remove(tables.size()-1);
 				System.out.println("TODO : DataDiaplay::update() on scopePopped");
 			}
 			else if ( e == SymbolTableEvent.symbolInserted ) {
@@ -166,9 +179,18 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				JTable table = tables.get( tables.size() - 1 );
 				DefaultTableModel tmodel = (DefaultTableModel) table.getModel();
 				tmodel.addRow(row[0]);
-
 			}
 			else if ( e == SymbolTableEvent.symbolAssignedNewValue) {
+				Symbol sym = stab.getAssignedSymbol();
+				String symName = stab.getAssignedSymbolName();
+				var_type v = sym.getData();
+				DefaultTableModel tmodel = (DefaultTableModel) tables.get(tables.size()-1).getModel();
+				for ( int i = 0; i < tmodel.getRowCount(); i++) {
+					String name = (String) tmodel.getValueAt(i, 1);
+					if ( name == symName ) {
+						tmodel.setValueAt( v, i, 2 );
+					}
+				}
 				System.out.println("TODO : DataDiaplay::update() on symbolAssignedNewValue");
 			}
 			else {
@@ -227,17 +249,6 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 	 */
 	private static void createAndShowGUI(SymbolTableNotifier stab, DataDisplay dd) {
 
-		//Create and set up the window.
-		JFrame frame = new JFrame("DataDisplay Driver");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-		//Create and set up the content pane.
-		dd.setOpaque(true); //content panes must be opaque
-		frame.setContentPane(dd);
-
-		//Display the window.
-		frame.pack();
-		frame.setVisible(true);
 	}
 
 	/** Driver.
@@ -258,7 +269,22 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		final DataDisplay display = new DataDisplay(new Dimension(200, 70));
 		final SymbolTableNotifier stab = new SymbolTableNotifier();
 		stab.addObserver( (CitrinObserver)display);
+		// display.setDimension( );
 
+		// -------------------------------------------------------------------
+		//
+
+		//Create and set up the window.
+		JFrame frame = new JFrame("DataDisplay Driver");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+		//Create and set up the content pane.
+		display.setOpaque(true); //content panes must be opaque
+		frame.setContentPane(display);
+
+		//Display the window.
+		frame.pack();
+		frame.setVisible(true);
         //Schedule a job for the event-dispatching thread:
         //creating and showing this application's GUI.
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
@@ -266,7 +292,9 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
                 createAndShowGUI(stab, display);
             }
         });
+		
 
+		// -------------------------------------------------------------------
 		//
 		// The changes made below to the symbol table should be automatically
 		// reflected on data display.
@@ -277,20 +305,31 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		v.value = 1;
 		Symbol s = new Symbol(loc, v);
 
-		// sleep
+		// First Push to First Scope
 		Thread.sleep(1000);
-
-		// First push
 		stab.pushSymbol(s);
 
-		// sleep
+		// Second Push to Firs Scope
 		Thread.sleep(1000);
-
-		// Second push
 		v.var_name = "second_variable";
 		v.value = 2;
 		s = new Symbol(loc, v);
 		stab.pushSymbol(s);
+
+		// Third Push to Second Scope
+		Thread.sleep(1000);
+		stab.pushFuncScope("Foo");
+		v.var_name = "third variable";
+		v.value = 2;
+		s = new Symbol(loc, v);
+		stab.pushSymbol(s);
+
+		// frame.revalidate();
+		// frame.repaint();
+		display.revalidate();
+		display.repaint();
+		frame.pack(); 
+
 
 
 	}

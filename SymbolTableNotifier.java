@@ -49,6 +49,8 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 
 	private Symbol insertedSymbol = null;
 	private SymbolDiagnosis insertedSymbolDiagnosis = null;
+	private Symbol assignedSymbol = null;
+	private String assignedSymbolName = null;
 	private List<CitrinObserver> observers = new ArrayList<CitrinObserver>();
 	// private ArrayList<CitrinObserver> observers = new ArrayList<CitrinObserver>();
 
@@ -71,6 +73,16 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 	public SymbolDiagnosis getInsertedSymbolDiagnosis()
 	{
 		return insertedSymbolDiagnosis;
+	}
+
+	public Symbol getAssignedSymbol()
+	{
+		return assignedSymbol;
+	}
+
+	public String getAssignedSymbolName()
+	{
+		return assignedSymbolName;
 	}
 
 	// -----------------------------------------------------------------------
@@ -136,6 +148,8 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 
 	void assignVar(String varName, var_type value){
 		super.assignVar(varName, value);
+		assignedSymbol = findVar(varName);
+		assignedSymbolName = varName;
 		// notify
 		notifyObservers( SymbolTableEvent.symbolAssignedNewValue);
 	}
