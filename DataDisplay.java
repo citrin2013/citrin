@@ -40,11 +40,14 @@
 // click on symbol and jump to its location
 //
 // show other variable info like in var_type
+// 
+// fix debug print 
 //
 
 import java.lang.Thread;
 import javax.swing.JTable;
 import java.util.Observer;
+import java.util.*;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -67,11 +70,13 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		"value"
 	};
 	private Object[][] data = { 
-		{ "a", 1 }, 
+		// {},
+		// { "a", 1 }, 
 	};
 
 	// Table
-	JTable table = new JTable(); 
+	// JTable table = new JTable(); 
+	List<JTable> tables = new ArrayList<JTable>();
 
 	// -----------------------------------------------------------------------
 	// Constructor
@@ -81,7 +86,9 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 	public DataDisplay(Dimension dim)
 	{
 
-		table.setModel(new DefaultTableModel(data,columnNames) );
+		JTable table = new JTable();
+		table.setModel( new DefaultTableModel(data,columnNames) );
+		tables.add( table );
 
 		JPanel jpanel = new JPanel( new GridLayout(1,0) );
 
@@ -94,13 +101,17 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		//
 		// Print contents of the table on click
 		//
-        if (DEBUG) {
-            table.addMouseListener(new MouseAdapter() {
-                public void mouseClicked(MouseEvent e) {
-                    printDebugData(table);
-                }
-            });
-        }
+
+		// for (Object tab : tables ) {
+		// 	tab = (JTable) tab;
+		// 	if (DEBUG) {
+		// 		tab.addMouseListener(new MouseAdapter() {
+		// 			public void mouseClicked(MouseEvent e) {
+		// 				printDebugData(tab);
+		// 			}
+		// 		});
+		// 	}
+		// }
 
         //Create the scroll pane and add the table to it.
         JScrollPane scrollPane = new JScrollPane(table);
@@ -152,8 +163,10 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				var_type v = s.getData();
 
 				final Object[][] row = { { v.var_name, v.value} }; 
+				JTable table = tables.get( tables.size() - 1 );
 				DefaultTableModel tmodel = (DefaultTableModel) table.getModel();
 				tmodel.addRow(row[0]);
+
 			}
 			else if ( e == SymbolTableEvent.symbolAssignedNewValue) {
 				System.out.println("TODO : DataDiaplay::update() on symbolAssignedNewValue");
@@ -260,7 +273,7 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		//
 		SymbolLocation loc = new SymbolLocation(1,1);
 		var_type v = new var_type();
-		v.var_name = "first new variable";
+		v.var_name = "first_variable";
 		v.value = 1;
 		Symbol s = new Symbol(loc, v);
 
@@ -274,7 +287,7 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		Thread.sleep(1000);
 
 		// Second push
-		v.var_name = "second new variable";
+		v.var_name = "second_variable";
 		v.value = 2;
 		s = new Symbol(loc, v);
 		stab.pushSymbol(s);
