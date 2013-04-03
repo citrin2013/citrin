@@ -37,11 +37,14 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
+import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.JToolTip;
+import javax.swing.KeyStroke;
 import javax.swing.UIManager;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.*;
-import javax.swing.text.Highlighter.HighlightPainter;
 import javax.swing.undo.AbstractUndoableEdit;
 
 public class guiPanel extends JPanel	implements ActionListener {
@@ -65,6 +68,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 	private JMenuItem redo;
 	private JButton pasteButton;
 
+
 //	private JTextArea area;
 
 	private Controller controller;
@@ -73,9 +77,8 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 	//Menu Items for Help
 	private JMenuItem tutorial;
-	private JMenuItem about;
 
-
+	
 	//constructor
 	public guiPanel(){
 
@@ -87,8 +90,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 		JMenu helpMenu = new JMenu("Help");
 		JMenu runMenu = new JMenu("Run");
 
-
-
+		
 		//menu items for the menu "File"
 		// newFile = new JMenuItem("New");
 		// openFile = new JMenuItem("Open");
@@ -103,8 +105,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 		//help menu
 		tutorial = new JMenuItem("Tutorial");
-		about = new JMenuItem("About");
-		
+
 		//add the menus to the menu bar
 		topBar.add(fileMenu);
 		topBar.add(editMenu);
@@ -127,7 +128,6 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 
 		helpMenu.add(tutorial);
-		helpMenu.add(new ShowAbout());
 
 		JPanel	myPanel = new JPanel();
 
@@ -140,11 +140,10 @@ public class guiPanel extends JPanel	implements ActionListener {
 		area.setEditable(true);
 
 		JToolBar editToolBar = new JToolBar();
-		
 
 		//add edit buttons to menu
 		// TODO: get undo/redo working, need undomanager and listner; look at swing.undo
-		editMenu.add(undo); 
+		editMenu.add(undo);
 		editMenu.add(redo);
 		editMenu.addSeparator();
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.cutAction));
@@ -169,7 +168,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 		a = area.getActionMap().get(DefaultEditorKit.selectAllAction);
 		a.putValue(Action.NAME, "Select All");
-		//actions for buttons for copy,paste,cut
+
 		Action copyAction = new DefaultEditorKit.CopyAction();
 		copyAction.putValue(Action.SMALL_ICON, new ImageIcon("copy.gif"));
 		copyAction.putValue(Action.NAME, ""); 
@@ -181,23 +180,6 @@ public class guiPanel extends JPanel	implements ActionListener {
 		Action cutAction = new DefaultEditorKit.CutAction();
 		cutAction.putValue(Action.SMALL_ICON, new ImageIcon("cut.gif"));
 		cutAction.putValue(Action.NAME, "");
-
-		JButton cut = new JButton(cutAction);
-		cut.setToolTipText("Cut (Ctrl+X)");
-		JButton copy = new JButton(copyAction);
-		copy.setToolTipText("Copy (Ctrl+C)");
-		JButton paste =  new JButton(pasteAction);
-		paste.setToolTipText("Paste (Ctrl+V)");
-		JButton runAll = new JButton(new RunAllActionButton());
-		runAll.setToolTipText("Run All");
-		JButton runStep = new JButton(new StepActionButton());
-		runStep.setToolTipText("Run Step");
-
-		editToolBar.add(cut);
-		editToolBar.add(copy);
-		editToolBar.add(paste);
-		editToolBar.add(runAll);
-		editToolBar.add(runStep);
 
 		// To Do: Get style menu working
 		/*Action action = new StyledEditorKit.BoldAction();
@@ -212,7 +194,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 		action.putValue(Action.NAME, "Underline");
 		styleMenu.add(action);*/
 
-		JTabbedPane tabbedPane = new JTabbedPane();
+		JTabbedPane program = new JTabbedPane();
 		JTabbedPane tabbedPane2 = new JTabbedPane();
 		JTabbedPane tabbedPane3 = new JTabbedPane();
 
@@ -229,13 +211,18 @@ public class guiPanel extends JPanel	implements ActionListener {
 		Editor editor = new Editor();
 
 		JScrollPane scrollPane = new JScrollPane(editor);
-
+		
+		//add line numbers to editor
+	//	TextLineNumber tln = new TextLineNumber(editor);
+	//	scrollPane.setRowHeaderView(tln);
+		
 		JScrollPane scrollPane2 = new JScrollPane(console);
 
 		JScrollPane scrollPane3 = new JScrollPane(area3);
 
 		//tabbedPane.addTab("Program", null);
-		tabbedPane.add("Program", scrollPane);
+		program.add("Program", scrollPane);
+	//	program.setName("*Program");
 
 		//tabbedPane2.addTab("Console", null);
 		tabbedPane2.add("Console", scrollPane2);
@@ -252,11 +239,60 @@ public class guiPanel extends JPanel	implements ActionListener {
 		fileMenu.addSeparator();
 		fileMenu.add(new ExitAction());
 
-		runMenu.add(new RunAllAction(console));
+		runMenu.add(new RunAllAction(console)); 
 		runMenu.add(new StepAction(console));
+		runMenu.add(new RunToBreakpointAction(console));
 
+		JButton open = new JButton(new OpenActionButton(editor));
+		open.setToolTipText("Open");
+		
+		//buttons for cut, copy, paste
+		JButton cut = new JButton(cutAction);
+		cut.setToolTipText("Cut (Ctrl+X)");
+		JButton copy = new JButton(copyAction);
+		copy.setToolTipText("Copy (Ctrl+C)");
+		JButton paste =  new JButton(pasteAction);
+		paste.setToolTipText("Paste (Ctrl+V)");
+		
+		//button to stop the interpreter
+		Action stopAction = new StopRunAction();
+		JButton stopRunButton = new JButton(stopAction);
+		
+		//button for runAll
+		Action runAllAction = new RunAllActionButton();
+		JButton runAll = new JButton(runAllAction);
+		runAll.setToolTipText("Run All (F11)");
+		runAllAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("F11"));
+		runAll.getActionMap().put("runAll", runAllAction);
+		runAll.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put((KeyStroke) runAllAction.getValue(Action.ACCELERATOR_KEY), "runAll")
+;
+		//button for runStep
+		Action runStepAction = new StepActionButton();
+		JButton runStep = new JButton(runStepAction);
+		runStep.setToolTipText("Run Step (F1)");
+		runStepAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("F1"));
+		runStep.getActionMap().put("runStep", runStepAction);
+		runStep.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put((KeyStroke) runStepAction.getValue(Action.ACCELERATOR_KEY), "runStep")
+;
+		
+		//button for save
+		Action saveAction = new SaveActionButton("", editor, true);
+		saveAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control S"));
+		JButton save = new JButton(saveAction);
+		save.getActionMap().put("save", saveAction);
+		save.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put((KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), "save")
+;
+		save.setToolTipText("Save (Ctrl+S)");
 
-
+		editToolBar.add(open);
+		editToolBar.add(cut);
+		editToolBar.add(copy);
+		editToolBar.add(paste);
+		editToolBar.add(runAll);
+		editToolBar.add(runStep);
+		editToolBar.add(save);
+		editToolBar.add(stopRunButton);
+		
 
 		JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane3, tabbedPane2);
 
@@ -264,7 +300,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 		splitPane2.setDividerLocation(200);
 
 		// JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, splitPane2);
-		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, splitPane2);
+		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, program, splitPane2);
 
 		splitPane.setOneTouchExpandable(true);
 		splitPane.setDividerLocation(450);
@@ -290,6 +326,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 		//setLocation(0,0); //This line doesn't seem to be necessary.
 
 		controller = new Controller(console);	
+
 	}
 
 
@@ -368,7 +405,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 // ToConsider : 
 //
 //		 SaveAction and OpenAction should  resides in a different class since
-//		 those actions sould be more related to some editing session type class
+//		 those actions should be more related to some editing session type class
 //		 rather than this main application class
 //
 //		 All these functions are using currentCppSourceFile. Hard to keep track
@@ -387,22 +424,22 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 	}
 
-
 	// An action that saves the document to a file : Supports Save and SaveAs actoins 
-	class SaveAction extends AbstractAction {
+	class SaveActionButton extends AbstractAction {
 
 		// PossibleBugSource : Saving to class member variable currentCppSourceFile
 
 		JTextComponent textComponent;
 		boolean saveToCurrentFile;
 
-		// label				... lable to show on the view
+		// label				... label to show on the view
 		// textComponent		... the view and model that keeps and show the text data
 		// saveToCurrentFile	... false => prompts the user for the file, true => save to curent file
-		public SaveAction(String label, JTextComponent textComponent, boolean saveToCurrentFile) {
-			super(label);
+		public SaveActionButton(String label, JTextComponent textComponent, boolean saveToCurrentFile) {
+			super("", new ImageIcon("saved.gif"));
 			this.textComponent = textComponent;
 			this.saveToCurrentFile = saveToCurrentFile;
+			
 		}
 
 		public void actionPerformed(ActionEvent ev) {
@@ -438,13 +475,102 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 	}
 
+	// An action that saves the document to a file : Supports Save and SaveAs actoins 
+	class SaveAction extends AbstractAction {
+
+		// PossibleBugSource : Saving to class member variable currentCppSourceFile
+
+		JTextComponent textComponent;
+		boolean saveToCurrentFile;
+
+		// label				... lable to show on the view
+		// textComponent		... the view and model that keeps and show the text data
+		// saveToCurrentFile	... false => prompts the user for the file, true => save to curent file
+		public SaveAction(String label, JTextComponent textComponent, boolean saveToCurrentFile) {
+			super(label, new ImageIcon("saved.gif"));
+			this.textComponent = textComponent;
+			this.saveToCurrentFile = saveToCurrentFile;
+		}
+
+		public void actionPerformed(ActionEvent ev) {
+			
+			File file;
+			if ( ! saveToCurrentFile ) {
+			JFileChooser chooser = new JFileChooser();
+			if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
+				return;
+			file = chooser.getSelectedFile();
+			if (file == null)
+				return;
+			} 
+			else {
+				file = new File(currentCppSourceFile);
+			}
+
+			FileWriter writer = null;
+			try {
+				writer = new FileWriter(file);
+				textComponent.write(writer);
+			} catch (IOException ex) {
+			JOptionPane.showMessageDialog(null,
+				"File Not Saved", "ERROR", JOptionPane.ERROR_MESSAGE);
+			} finally {
+				if (writer != null) {
+					try {
+						writer.close();
+					} catch (IOException x) {
+					}
+				}
+			}
+		}
+	}
+
 	// An action that opens an existing file
 	class OpenAction extends AbstractAction {
 		JTextComponent textComponent;
 
 		// textComponent ... this action opens a file into this textComponent
 		public OpenAction(JTextComponent textComponent) {
-			super("Open");
+			super("Open", new ImageIcon("open.gif"));
+			this.textComponent = textComponent;
+		}
+
+		// Query user for a filename and attempt to open and read the file into
+		// the text component.
+		public void actionPerformed(ActionEvent ev) {
+			JFileChooser chooser = new JFileChooser();
+			if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION)
+			return;
+			File file = chooser.getSelectedFile();
+			if (file == null)
+			return;
+
+			FileReader reader = null;
+			try {
+				reader = new FileReader(file);
+				textComponent.read(reader, null);
+				currentCppSourceFile = file.getPath();
+			} catch (IOException ex) {
+				JOptionPane.showMessageDialog(null,
+				"File Not Found", "ERROR", JOptionPane.ERROR_MESSAGE);
+			} finally {
+				if (reader != null) {
+					try {
+						reader.close();
+					} catch (IOException x) {
+					}
+				}
+			}
+		}
+	}
+	
+	// An action that opens an existing file
+	class OpenActionButton extends AbstractAction {
+		JTextComponent textComponent;
+
+		// textComponent ... this action opens a file into this textComponent
+		public OpenActionButton(JTextComponent textComponent) {
+			super("", new ImageIcon("open.gif"));
 			this.textComponent = textComponent;
 		}
 
@@ -477,39 +603,13 @@ public class guiPanel extends JPanel	implements ActionListener {
 		}
 	}
 
-	class ShowAbout extends AbstractAction{
-	
-		public ShowAbout() {
-			super("About");
-		}
-		@Override
-		public void actionPerformed(ActionEvent ev) {
-			//display a window with text
-		//	JOptionPane x = new JOptionPane();
-			JOptionPane.showMessageDialog(null, 
-					"CITRIN is an interactive interpreter designed for beginning C++ students.\n" +
-					"The user can edit code in the 'Program' tab. The user can run the interpreter\n" +
-					"with RunAll which runs through the enitre program. The user can step through\n" +
-					"the program using RunStep which interprets one line at a time.\n" +
-					"The 'Console' tab displays the interpretation of each line.\n" +
-					"The 'States' tab displays the current value of the variables and\n" +
-					"which variables are in scope and which are inactive.\n\n" +
-					"University of Nevada, Reno\n" +
-					"College of Engineering" +
-					"\nSenior Project\n" +
-					"Team 07: Shaun Davidson, Jessica Hall, Yuta Matsumoto, Chris Salls\nExternal Advisor: Michael Leveringoton\nInstructor: Sergiu Dascalu");
-			
-		}
-		
-	}
 	// An action that runs the interpreter on all the contents of the current cpp source file
-	//TODO: add printVarVal(var_type var) to this
 	class RunAllAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
 
 		public RunAllAction(JTextComponent display) {
-			super("RunAll");
+			super("RunAll", new ImageIcon("RunAll.gif"));
 			this.display = display;
 		}
 
@@ -571,7 +671,7 @@ class RunAllActionButton extends AbstractAction {
 		String interpretation = "";
 
 		public StepAction(JTextComponent display) {
-			super("Step");
+			super("Step", new ImageIcon("step.gif"));
 			this.display = display;
 		}
 
@@ -597,40 +697,89 @@ class RunAllActionButton extends AbstractAction {
 	}
 	
 	class StepActionButton extends AbstractAction {
-		JTextComponent display;
-	//	String interpretation = "";
-
-		public StepActionButton() {
-			super("Step");
-//			this.display = display;
+		String interpretation = "";
+		public StepActionButton(){
+			super("", new ImageIcon("step.gif"));
 		}
 
 		@Override
-		public void actionPerformed(ActionEvent e) {
-			// run interpreter on currentCppSourceFile
-
+		public void actionPerformed(ActionEvent e){
 			Interpreter i;
+			//run interpreter on currentCppSourceFile
+
+			//Start interpreter in new thread
 			synchronized(controller){
 				if(!controller.isInterpreting()){
 					controller.clearConsole();
 					controller.setInterpretingStart();
-					new Thread(i = new Interpreter(controller,currentCppSourceFile,1)).start();
+					new Thread(i=new Interpreter(controller, currentCppSourceFile,1)).start();
 					controller.addInterpreter(i);
 				}
 				else{
 					controller.addSteps(1);
 				}
 			}
+		}
+	}
+
+
+	class RunToBreakpointAction extends AbstractAction {
+		JTextComponent display;
+		String interpretation = "";
+
+		public RunToBreakpointAction(JTextComponent display) {
+			super("Run to Breakpoint");
+			this.display = display;
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			// run interpreter on currentCppSourceFile
+			int steps;
+			JOptionPane dialog = new JOptionPane();
+			int input = Integer.parseInt(dialog.showInputDialog("Enter number of steps to run"));
+			input = input-1;
+			Interpreter i;
+			synchronized(controller){
+					controller.clearConsole();
+					controller.setInterpretingStart();
+					new Thread(i = new Interpreter(controller,currentCppSourceFile,1)).start();
+					controller.addInterpreter(i);
+					controller.addSteps(input);
+			}
 
 		}
 
 	}
+	
+	class StopRunAction extends AbstractAction {
 
 
+		public StopRunAction() {
+			super("", new ImageIcon("stop.gif"));
+
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			//stop interpreter
+
+			synchronized(controller){
+					controller.stopInterpreter();
+			}
+
+		}
+
+	}
+	
 	@Override
-	public void actionPerformed(ActionEvent arg0) {
-		// TODO Auto-generated method stub
-
+	public void actionPerformed(ActionEvent e) {
+	/*	// TODO Auto-generated method stub 
+		ImageIcon t = new ImageIcon("saved.gif");
+		if(e.getSource() == saveButton){
+		saveButton.setIcon(t);
+		//saveButton.add(saveButton, new ImageIcon("saved.gif"));
+		}*/
 	}
 
 }
