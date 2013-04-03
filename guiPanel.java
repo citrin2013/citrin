@@ -213,6 +213,10 @@ public class guiPanel extends JPanel	implements ActionListener {
 		JScrollPane scrollPane = new JScrollPane(editor);
 		
 		//add line numbers to editor
+		TextLineNumber tln = new TextLineNumber(editor);
+		scrollPane.setRowHeaderView(tln);
+		
+		//add line numbers to editor
 	//	TextLineNumber tln = new TextLineNumber(editor);
 	//	scrollPane.setRowHeaderView(tln);
 		
@@ -559,6 +563,12 @@ public class guiPanel extends JPanel	implements ActionListener {
 						reader.close();
 					} catch (IOException x) {
 					}
+					//Set text component to focus
+					textComponent.requestFocus();
+					
+					//hack to update line numbers
+					textComponent.setCaretPosition(textComponent.getDocument().getLength());
+					textComponent.setCaretPosition(0);
 				}
 			}
 		}
@@ -599,6 +609,12 @@ public class guiPanel extends JPanel	implements ActionListener {
 					} catch (IOException x) {
 					}
 				}
+				//Set text component to focus
+				textComponent.requestFocus();
+				
+				//hack to update line numbers
+				textComponent.setCaretPosition(textComponent.getDocument().getLength());
+				textComponent.setCaretPosition(0);
 			}
 		}
 	}
