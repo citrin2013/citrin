@@ -1092,6 +1092,7 @@ boolean check_do() {
 
 	public synchronized void stop(){
 		StopRun = true;
+		notifyAll();
 	}
 
 	public synchronized void addSteps(int s){

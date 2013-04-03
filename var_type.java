@@ -10,13 +10,7 @@ public class var_type{
 	public boolean lvalue;
 	public String scope; //TODO: currently unused, will require more thought
 	public var_type memberOf = null; //TODO:
-	public static final String EQ = "==";
-	public static final String LT = "<";	
-	public static final String LE = "<=";
-	public static final String GT = ">";
-	public static final String GE = ">=";
-	public static final String NE = "!=";
-
+	public int address = -1;
 
 	var_type(){
 		var_name = null;
@@ -193,22 +187,22 @@ public var_type sub(var_type rhs) throws SyntaxError{
 				double val1 = value.doubleValue();
 				double val2 = rhs.value.doubleValue();
 
-				if(op.equals(EQ)){
+				if(op.equals("==")){
 					v.value = (val1 == val2)? 1 : 0;
 				}
-				else if(op.equals(LT)){
+				else if(op.equals("<")){
 					v.value = (val1 < val2)? 1 : 0;
 				}
-				else if(op.equals(LE)){
+				else if(op.equals("<=")){
 					v.value = (val1 <= val2)? 1 : 0;
 				}
-				else if(op.equals(GT)){
+				else if(op.equals(">")){
 					v.value = (val1 > val2)? 1 : 0;
 				}
-				else if(op.equals(GE)){
+				else if(op.equals(">=")){
 					v.value = (val1 >= val2)? 1 : 0;
 				}
-				else if(op.equals(NE)){
+				else if(op.equals("!=")){
 					v.value = (val1 != val2)? 1 : 0;
 				}
 
@@ -218,22 +212,22 @@ public var_type sub(var_type rhs) throws SyntaxError{
 				int val1 = value.intValue();
 				int val2 = rhs.value.intValue();
 
-				if(op.equals(EQ)){
+				if(op.equals("==")){
 					v.value = (val1 == val2)? 1 : 0;
 				}
-				else if(op.equals(LT)){
+				else if(op.equals("<")){
 					v.value = (val1 < val2)? 1 : 0;
 				}
-				else if(op.equals(LE)){
+				else if(op.equals("<=")){
 					v.value = (val1 <= val2)? 1 : 0;
 				}
-				else if(op.equals(GT)){
+				else if(op.equals(">")){
 					v.value = (val1 > val2)? 1 : 0;
 				}
-				else if(op.equals(GE)){
+				else if(op.equals(">=")){
 					v.value = (val1 >= val2)? 1 : 0;
 				}
-				else if(op.equals(NE)){
+				else if(op.equals("!=")){
 					v.value = (val1 != val2)? 1 : 0;
 				}
 			}
@@ -448,7 +442,7 @@ public var_type sub(var_type rhs) throws SyntaxError{
 		}
 	}
 
-	//public List<var_type> data; //use this for classes?
+	//public ArrayList<var_type> data; //use this for classes?
 }
 
 	/*public class primitive_var extends var_type {
