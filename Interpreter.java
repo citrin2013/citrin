@@ -89,7 +89,6 @@ public class Interpreter implements Runnable{
 			controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
 		} /* find the location of all functions and global variables in the program */
 
-		controller.consoleOut("prescan done\n");
 		if(!isUserFunc("main")){
 			controller.consoleOut("Syntax Error: main() not found");
 			return interpretation;
