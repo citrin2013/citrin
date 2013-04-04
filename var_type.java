@@ -281,6 +281,7 @@ public var_type sub(var_type rhs) throws SyntaxError{
 		var_type result = new var_type();
 		result.v_type = this.v_type;
 		result.value = this.value;
+		result.var_name = this.var_name;
 		var_type v1 = new var_type();
 		v1.v_type = keyword.INT;
 		v1.value = 1;
@@ -293,6 +294,7 @@ public var_type sub(var_type rhs) throws SyntaxError{
 		var_type result = new var_type();
 		result.v_type = this.v_type;
 		result.value = this.value;
+		result.var_name = this.var_name;
 		var_type v1 = new var_type();
 		v1.v_type = keyword.INT;
 		v1.value = 1;

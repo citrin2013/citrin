@@ -591,8 +591,9 @@ public class ExpressionEvaluator {
 		  if(!result.lvalue)
 			  interpreter.sntx_err("Argument of ++ operator must be an lvalue");
 		  result = result.prefixIncrement();
-		  if(!checkOnly)
+		  if(!checkOnly){
 			  interpreter.printVarVal(result);
+		  }
 	  }
 	  else if( op.equals("--") ){
 		  if(!result.lvalue)
@@ -627,7 +628,7 @@ public class ExpressionEvaluator {
 	//evaluate precedence 2 left to right
 	//TODO: function calls should be in this precedence rather than in atom??
 	private var_type eval_exp16() throws StopException, SyntaxError {
-		var_type result;
+		var_type result, temp;
 		result = eval_exp17();
 		String op = token.value;
 
@@ -638,14 +639,18 @@ public class ExpressionEvaluator {
 				if(op.equals("++")){
 					if(!result.lvalue)
 						interpreter.sntx_err("Argument of ++ operator must be an lvalue");
-					result = result.suffixIncrement();
-					interpreter.printVarVal(result);
+					temp = result.suffixIncrement();
+					if(!checkOnly)
+						interpreter.printVarVal(result);
+					result = temp;
 				}
 				else if(op.equals("--")){
 					if(!result.lvalue)
 						interpreter.sntx_err("Argument of -- operator must be an lvalue");
-					result = result.suffixDecrement();
-					interpreter.printVarVal(result);
+					temp = result.suffixDecrement();
+					if(!checkOnly)
+						interpreter.printVarVal(result);
+					result = temp;
 				}
 				else if(op.equals("[")){
 					interpreter.sntx_err("arrays have not been implemented");

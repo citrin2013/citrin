@@ -23,7 +23,6 @@ public class Controller {
 	public synchronized void consoleOut(String message){
 		 interpretation+=message;
 		 final String messageCopy = new String(message);
-
 		 EventQueue.invokeLater(new Runnable() { 
 		   @Override
 		   public void run() {

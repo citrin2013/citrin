@@ -89,7 +89,7 @@ public class Interpreter implements Runnable{
 			controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
 		} /* find the location of all functions and global variables in the program */
 
-
+		controller.consoleOut("prescan done\n");
 		if(!isUserFunc("main")){
 			controller.consoleOut("Syntax Error: main() not found");
 			return interpretation;
@@ -167,16 +167,18 @@ public class Interpreter implements Runnable{
 			}
 
 			token = lexer.get_token();
+			
 			//TODO FIX SO CAN OPEN A NEW BLOCK
 			/* see what kind of token is up */
 			if(token.type==token_type.BLOCK) { /* if block delimiter */
 				if(token.value.charAt(0) == '{' && block==0){ /* is a block */
 				block = 1;/* interpreting block, not statement */
-				addSteps(1);
+				addSteps(1); // add step (curly brace isn't counted as a step
 				}
 				else if(token.value.equals("{") && block!=0)
 					sntx_err("TODO THIS IS VALID SYNTAX, not allowed in citrin");
 				else{
+				addSteps(1); // add step (curly brace isn't counted as a step
 				if(block==0)
 					sntx_err("Expecting an expression before }");
 				return return_state.END_OF_BLOCK; /* is a }, so return */
