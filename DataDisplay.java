@@ -52,6 +52,7 @@ import javax.swing.JPanel;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -59,6 +60,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.JScrollPane;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.JComponent;
+import javax.swing.JTextArea;
+
+import javax.swing.Box;
+import javax.swing.JLabel;
+import java.awt.BorderLayout;
 
 public class DataDisplay extends JPanel implements CitrinObserver { // implements Observer {
 
@@ -73,7 +80,12 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 
 	private Dimension dim;
 
+	// TODO 
+	// make a class that contains pair of table and its container instead of
+	// a parallel list. This is error prone.
 	private List<JTable> tables = new ArrayList<JTable>();
+	private List<JComponent> tableContainers = new ArrayList<JComponent>();
+	private int tableCount = 0;
 
 	// -----------------------------------------------------------------------
 	// Constructor
@@ -82,9 +94,30 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 	 */
 	public DataDisplay(Dimension dim)
 	{
-
+		// Set dimenstion of the table
 		this.dim = dim;
 
+		// Add Title
+		Box box1 = Box.createHorizontalBox();
+		box1.add(new JLabel("Variables"));
+		add(box1, BorderLayout.NORTH);
+
+		// JTextArea area3 = new JTextArea();
+		// area3.setColumns(30);
+		// area3.setRows(10);
+		// area3.setEditable(false);
+		// JScrollPane scrollPane3 = new JScrollPane(area3);
+		// add("States", scrollPane3);
+
+		// TODO
+		// push scope for global scope. ugly hack.
+		//
+		// In the SymbolTable class global scope
+		// is pushed in its constructor without using its internal
+		// push*Scope() function, so SymbolTableEvent.scopePushed* is not
+		// propagated into this observer, since observer is added only after
+		// the construction of SymbolTable via SymbolTableNotifier::addObserver()
+		//
 		addScopeTable();
 
 		//
@@ -92,17 +125,15 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		//
 		// Print contents of the table on click
 		//
-
-		// for (Object tab : tables ) {
-		// 	tab = (JTable) tab;
-		// 	if (DEBUG) {
-		// 		tab.addMouseListener(new MouseAdapter() {
-		// 			public void mouseClicked(MouseEvent e) {
-		// 				printDebugData(tab);
-		// 			}
-		// 		});
-		// 	}
-		// }
+		for (final JTable tab : tables ) {
+			if (DEBUG) {
+				tab.addMouseListener(new MouseAdapter() {
+					public void mouseClicked(MouseEvent e) {
+						printDebugData(tab);
+					}
+				});
+			}
+		}
 	}
 
 	void setDimension(Dimension dim)
@@ -112,15 +143,20 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 
 	private void addScopeTable()
 	{
+		tableCount++;
+
+		// Create new table for the new scope
 		JTable table = new JTable();
 		table.setModel( new DefaultTableModel(data,columnNames) );
 		tables.add( table );
 		table.setPreferredScrollableViewportSize(dim);
         table.setFillsViewportHeight(true);
+
         //Create the scroll pane and add the table to it.
         JScrollPane scrollPane = new JScrollPane(table);
+		tableContainers.add(scrollPane);
         //Add the scroll pane to this panel.
-        add(scrollPane);
+        add(scrollPane, BorderLayout.SOUTH);
 		revalidate();
 		repaint();
 	}
@@ -157,18 +193,30 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				// Make current scope table dimmed
 				addScopeTable();
 
-				System.out.println("TODO : DataDiaplay::update() on scopePushedInParallel");
+				System.out.println("DataDiaplay::update() on scopePushedInParallel");
 			}
 			else if ( e == SymbolTableEvent.scopePushedAsChild ) {
 				addScopeTable();
 
-				System.out.println("TODO : DataDiaplay::update() on scopePushedAsChild");
+				System.out.println("DataDiaplay::update() on scopePushedAsChild");
 			}
 			else if ( e == SymbolTableEvent.scopePopped ) {
 				// TODO 
 				// what if it is a parellel scope 
-				tables.remove(tables.size()-1);
-				System.out.println("TODO : DataDiaplay::update() on scopePopped");
+
+				// if (0<tableContainers.size()) {
+				if (0<tableCount) {
+					remove( tableContainers.get( tableContainers.size()-1));
+					tableContainers.remove(tableContainers.size()-1);
+					tables.remove(tables.size()-1);
+					revalidate();
+					repaint();
+					tableCount--;
+				}
+				else {
+					System.out.println("DataDiaplay::update() on scopePopped called when tableCount =< 0");
+				}
+				System.out.println("DataDiaplay::update() on scopePopped");
 			}
 			else if ( e == SymbolTableEvent.symbolInserted ) {
 				Symbol s = stab.getInsertedSymbol();
@@ -179,19 +227,24 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				JTable table = tables.get( tables.size() - 1 );
 				DefaultTableModel tmodel = (DefaultTableModel) table.getModel();
 				tmodel.addRow(row[0]);
+				System.out.println("DataDiaplay::update() on symbolInserted");
 			}
 			else if ( e == SymbolTableEvent.symbolAssignedNewValue) {
+				// TODO 
+				//
+				// This is not called from Interpreter
+				//
 				Symbol sym = stab.getAssignedSymbol();
 				String symName = stab.getAssignedSymbolName();
 				var_type v = sym.getData();
 				DefaultTableModel tmodel = (DefaultTableModel) tables.get(tables.size()-1).getModel();
 				for ( int i = 0; i < tmodel.getRowCount(); i++) {
 					String name = (String) tmodel.getValueAt(i, 1);
-					if ( name == symName ) {
+					if ( name.equals( symName ) ) {
 						tmodel.setValueAt( v, i, 2 );
 					}
 				}
-				System.out.println("TODO : DataDiaplay::update() on symbolAssignedNewValue");
+				System.out.println("DataDiaplay::update() on symbolAssignedNewValue");
 			}
 			else {
 				throw new RuntimeException("DataDisplay::update() Invalid SymbolTableEvent Supplied");
@@ -329,8 +382,6 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		display.revalidate();
 		display.repaint();
 		frame.pack(); 
-
-
 
 	}
 

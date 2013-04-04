@@ -2,7 +2,9 @@
 // Overview 
 //
 //	A little wrapper class that notifies GUI component to reflect changes as
-//	symbol table is changed. 
+//	symbol table is changed. By adding an observer to an instance of this
+//	class lets the observer notified automatically on any change of this
+//	symbol table with appropriate event flag through Observer::update().
 //
 // Purpose of This Class
 //
@@ -24,9 +26,6 @@
 //
 //  Add Manifest
 //  
-//	What is the compilation warning about?
-//	"uses unchecked or unsafe operations"
-//
 //	Add to overview how this works
 //
 
@@ -91,12 +90,12 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 	
 	public void notifyObservers(Object arg)
 	{ // Java Observable uses setChanged() and stuff
-		// Iterator i = observers.iterator();
 		Iterator<CitrinObserver> i = observers.iterator();
 		CitrinObserver o;
 		while (i.hasNext()) {
 			o = (CitrinObserver) i.next();
-			o.update(this, arg); // HERE this requires Observable,Object by Observer::update
+			if (o != null ) // TODO : ugly
+				o.update(this, arg); // HERE this requires Observable,Object by Observer::update
 		}
 	}
 
@@ -115,43 +114,38 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 
 	public void pushFuncScope(String funcName){
 		super.pushFuncScope(funcName);
-
-		// notify here
 		SymbolTableEvent event;
 		notifyObservers(SymbolTableEvent.scopePushedInParallel);
 	}
 
 	public void pushLocalScope(){
 		super.pushLocalScope();
-		// notify here
 		notifyObservers(SymbolTableEvent.scopePushedAsChild);
 	}
 
 	public void popScope(){
 		super.popScope();
-		// notify
 		notifyObservers(SymbolTableEvent.scopePopped);
 	}
 
 	public SymbolDiagnosis pushSymbol(Symbol s){
-		// Store data for data display
 		insertedSymbol = s;
 		insertedSymbolDiagnosis = super.pushSymbol(s);
 		
+		// TODO : what should be the behavior of conflicted symbol ? The
+		// interpreter catches it ?
+		//
 		// notify SymbolTable if no conflict happens (should be compilation error)
-		// notify console if conflict happens - interpreter will catch it during prescan so don't notify the console
 		notifyObservers( SymbolTableEvent.symbolInserted );
 
 		return insertedSymbolDiagnosis;
-
 	}
 
 	void assignVar(String varName, var_type value){
 		super.assignVar(varName, value);
 		assignedSymbol = findVar(varName);
 		assignedSymbolName = varName;
-		// notify
-		notifyObservers( SymbolTableEvent.symbolAssignedNewValue);
+		notifyObservers( SymbolTableEvent.symbolAssignedNewValue );
 	}
 
 }

@@ -9,7 +9,7 @@ import java.lang.Math;
 //TODO should derive functions and vars from same base class to handle functions as parameters?
 //TODO should add base class for basic vars and classes?
 
-public class Interpreter implements Runnable{
+public class Interpreter implements Runnable {
 
 	//public enum double_ops {LT, LE, GT, GE, EQ, NE};
 	private enum block_type {FUNCTION, CONDITIONAL};
@@ -37,11 +37,21 @@ public class Interpreter implements Runnable{
 	static private String interpretation = "";
 	Lexer lexer = null;
 
+	// -----------------------------------------------------------------------
+	// Constructors
 
 	@SuppressWarnings("unused")
 	private Interpreter(){
 
 		}
+
+	public Interpreter(Controller c, String s, int numSteps, SymbolTable stab)
+	{
+		controller = c;
+		CppSrcFile = s;
+		numStepsToRun = numSteps;
+		this.symbolTable = stab;
+	}
 
 	public Interpreter(Controller c, String s, int numSteps){
 		controller = c;
@@ -50,6 +60,9 @@ public class Interpreter implements Runnable{
 		symbolTable = new SymbolTable();
 		
 	}
+
+	// -----------------------------------------------------------------------
+	// Interprete
 
 	@Override
 	public void run() {
@@ -64,7 +77,6 @@ public class Interpreter implements Runnable{
 		controller.consoleOut("run ended");
 		controller.setInterpretingDone();
 	}
-
 
 	public String runAll() throws IOException {
 
