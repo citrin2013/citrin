@@ -463,7 +463,15 @@ private void decl_var() throws StopException, SyntaxError{
 				return;
 		}
 		else{
-			find_eob(); //find the end of the loop
+			//find the end of the loop
+			token = lexer.get_token();
+			if(!token.value.equals("{")){
+				lexer.putback();
+				findEndOfStatement();
+			}
+			else{
+				find_eob();					
+			}
 			return;
 		}
 
@@ -497,8 +505,10 @@ private void decl_var() throws StopException, SyntaxError{
 
 			token = lexer.get_token();
 			if(token.key==keyword.ELSE){
+				//find the end of the else
 				token = lexer.get_token();
 				if(!token.value.equals("{")){
+					lexer.putback();
 					findEndOfStatement();
 				}
 				else{
@@ -510,7 +520,16 @@ private void decl_var() throws StopException, SyntaxError{
 			}
 		}
 		else{ //skip around block, check for else
-			find_eob(); //find the end of the loop
+
+			//find the end of the if
+			token = lexer.get_token();
+			if(!token.value.equals("{")){
+				lexer.putback();
+				findEndOfStatement();
+			}
+			else{
+				find_eob();					
+			}
 			token = lexer.get_token();
 
 			if(token.key != keyword.ELSE){
