@@ -11,7 +11,7 @@ public class ExpressionEvaluator {
 	private Lexer lexer = null;	
 	private Lexer.Token token;
 	private boolean checkOnly = false;
-	private SymbolTable symbolTable;
+	private SymbolTableNotifier symbolTable;
 
 	public static final String EQ = "==";
 	public static final String LT = "<";	
@@ -25,7 +25,7 @@ public class ExpressionEvaluator {
 	private ExpressionEvaluator(){
 	}
 
-	public ExpressionEvaluator(Interpreter i, SymbolTable s){
+	public ExpressionEvaluator(Interpreter i, SymbolTableNotifier s){
 		interpreter = i;
 		lexer = interpreter.lexer;
 		symbolTable = s;
@@ -81,12 +81,12 @@ public class ExpressionEvaluator {
 		  return result;
 
 	  //otherwise it is an assignment expression
-	  token = lexer.get_token();
-	  var_type rhs = eval_exp2();
-
 	  if(!result.lvalue){
 		  interpreter.sntx_err("Left hand side of "+op+" must be an lvalue");
 	  }
+	  token = lexer.get_token();
+	  var_type rhs = eval_exp2();
+
 	  if(checkOnly){
 		  switch(op.charAt(0)){
 		  case '%':
@@ -139,6 +139,7 @@ public class ExpressionEvaluator {
 		  break;
 	  }
 	  interpreter.printVarVal(result);
+	  symbolTable.updatedVar(result.address);
 
 	  return result;
 	}
@@ -522,7 +523,6 @@ public class ExpressionEvaluator {
 
 	  result = eval_exp14 ();
 	  op = token.value;
-	  //TODO cant use char at here
 	  while(op.equals("*") || op.equals("/") || op.equals("%") ){		
 		token = lexer.get_token();
 		partial_value = eval_exp14();
@@ -563,7 +563,6 @@ public class ExpressionEvaluator {
 	private var_type eval_exp15()  throws StopException, SyntaxError {
 	  var_type result;
 
-	  //TODO cant use charAt here
 	  String op = null;
 	  if(token.value.equals("+") || token.value.equals("-") || token.value.equals("++") || token.value.equals("--")
 			  || token.value.equals("!") || token.value.equals("~") || token.value.equals("*") 
@@ -593,14 +592,17 @@ public class ExpressionEvaluator {
 		  result = result.prefixIncrement();
 		  if(!checkOnly){
 			  interpreter.printVarVal(result);
+			  symbolTable.updatedVar(result.address);
 		  }
 	  }
 	  else if( op.equals("--") ){
 		  if(!result.lvalue)
 			  interpreter.sntx_err("Argument of ++ operator must be an lvalue");
 		  result = result.prefixDecrement();
-		  if(!checkOnly)
+		  if(!checkOnly){
 			  interpreter.printVarVal(result);
+			  symbolTable.updatedVar(result.address);
+		  }
 	  }
 	  else if( op.equals("!") ){
 		  result = result.logicalNot();
@@ -640,16 +642,20 @@ public class ExpressionEvaluator {
 					if(!result.lvalue)
 						interpreter.sntx_err("Argument of ++ operator must be an lvalue");
 					temp = result.suffixIncrement();
-					if(!checkOnly)
+					if(!checkOnly){
 						interpreter.printVarVal(result);
+						symbolTable.updatedVar(result.address);
+					}
 					result = temp;
 				}
 				else if(op.equals("--")){
 					if(!result.lvalue)
 						interpreter.sntx_err("Argument of -- operator must be an lvalue");
 					temp = result.suffixDecrement();
-					if(!checkOnly)
+					if(!checkOnly){
 						interpreter.printVarVal(result);
+						symbolTable.updatedVar(result.address);
+					}
 					result = temp;
 				}
 				else if(op.equals("[")){

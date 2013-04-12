@@ -16,6 +16,7 @@ public class var_type{
 		var_name = null;
 		v_type = null;
 		lvalue = false;
+		address = -1;
 	}
 	var_type(var_type rhs){
 		if(rhs.var_name != null){
@@ -24,6 +25,7 @@ public class var_type{
 		v_type = rhs.v_type;
 		value = rhs.value;
 		lvalue = rhs.lvalue;
+		address = rhs.address;
 	}
 
 	//TODO: THIS FUNCTION WONT WORK WITH CLASSES
@@ -278,10 +280,7 @@ public var_type sub(var_type rhs) throws SyntaxError{
 	}
 
 	var_type suffixIncrement() throws SyntaxError{
-		var_type result = new var_type();
-		result.v_type = this.v_type;
-		result.value = this.value;
-		result.var_name = this.var_name;
+		var_type result = new var_type(this);
 		var_type v1 = new var_type();
 		v1.v_type = keyword.INT;
 		v1.value = 1;
@@ -291,10 +290,7 @@ public var_type sub(var_type rhs) throws SyntaxError{
 	}
 
 	var_type suffixDecrement() throws SyntaxError{
-		var_type result = new var_type();
-		result.v_type = this.v_type;
-		result.value = this.value;
-		result.var_name = this.var_name;
+		var_type result = new var_type(this);
 		var_type v1 = new var_type();
 		v1.v_type = keyword.INT;
 		v1.value = 1;

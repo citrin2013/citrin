@@ -18,7 +18,7 @@ public class Interpreter implements Runnable {
 	//private final int NUM_COMMANDS = 14;
 	private int numStepsToRun = 0;
 
-	public SymbolTable symbolTable;
+	public SymbolTableNotifier symbolTable;
 	private Controller controller;
 	private String CppSrcFile;
 	private boolean StopRun = false;
@@ -45,7 +45,7 @@ public class Interpreter implements Runnable {
 
 		}
 
-	public Interpreter(Controller c, String s, int numSteps, SymbolTable stab)
+	public Interpreter(Controller c, String s, int numSteps, SymbolTableNotifier stab)
 	{
 		controller = c;
 		CppSrcFile = s;
@@ -57,7 +57,7 @@ public class Interpreter implements Runnable {
 		controller = c;
 		CppSrcFile = s;
 		numStepsToRun = numSteps;
-		symbolTable = new SymbolTable();
+		symbolTable = new SymbolTableNotifier();
 		
 	}
 

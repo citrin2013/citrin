@@ -239,9 +239,9 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				var_type v = sym.getData();
 				DefaultTableModel tmodel = (DefaultTableModel) tables.get(tables.size()-1).getModel();
 				for ( int i = 0; i < tmodel.getRowCount(); i++) {
-					String name = (String) tmodel.getValueAt(i, 1);
+					String name = tmodel.getValueAt(i, 0).toString();
 					if ( name.equals( symName ) ) {
-						tmodel.setValueAt( v, i, 2 );
+						tmodel.setValueAt( v.value, i, 1 );
 					}
 				}
 				System.out.println("DataDiaplay::update() on symbolAssignedNewValue");

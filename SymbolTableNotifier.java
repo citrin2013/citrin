@@ -141,10 +141,17 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 		return insertedSymbolDiagnosis;
 	}
 
-	void assignVar(String varName, var_type value){
-		super.assignVar(varName, value);
-		assignedSymbol = findVar(varName);
+	Symbol assignVar(String varName, var_type value){
+		assignedSymbol = super.assignVar(varName, value);
 		assignedSymbolName = varName;
+		notifyObservers( SymbolTableEvent.symbolAssignedNewValue );
+		return assignedSymbol;
+	}
+	
+	// function to notify when a var is updated
+	void updatedVar(int address){
+		assignedSymbol = varStack.get(address);
+		assignedSymbolName = varStack.get(address).data.var_name;
 		notifyObservers( SymbolTableEvent.symbolAssignedNewValue );
 	}
 
