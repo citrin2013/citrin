@@ -102,14 +102,14 @@ public class Interpreter implements Runnable {
 		} /* find the location of all functions and global variables in the program */
 
 		if(!isUserFunc("main")){
-			controller.consoleOut("Syntax Error: main() not found");
+			controller.consoleOut("Syntax Error: main() not found\n");
 			return interpretation;
 		}
 		ArrayList<var_type> args = new ArrayList<var_type>();
 		try {
 			index = find_func("main", args);
 		} catch (SyntaxError e1) {
-			controller.consoleOut("Syntax Error: main() not found"+'\n');
+			controller.consoleOut("Syntax Error: main() not found\n");
 			return interpretation;
 		} //set up call to main		
 		lexer.index = func_table[index].location;
@@ -123,6 +123,7 @@ public class Interpreter implements Runnable {
 			controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
 		}
 		symbolTable.popScope();
+		symbolTable.clear();
 
 		return interpretation;
 	}
@@ -663,11 +664,15 @@ boolean check_do() {
 	private boolean prescan1()
 	{
 		checkOnly = true;
+
+		
 		boolean syntaxGood = true;
 		int oldIndex = lexer.index;
 		int tempIndex;
 		String temp;
 		keyword datatype;
+		SymbolTableNotifier tempSymbolTable = symbolTable;
+		symbolTable = new SymbolTableNotifier();
 		int tempNumStepsToRun = numStepsToRun;
 		numStepsToRun = -1;
 		func_index = 0;
@@ -753,6 +758,7 @@ boolean check_do() {
 		lexer.index = oldIndex;
 		checkOnly = false;
 		numStepsToRun = tempNumStepsToRun;
+		symbolTable = tempSymbolTable;
 		return syntaxGood;
 	}
 

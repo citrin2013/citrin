@@ -125,6 +125,21 @@ public class SymbolTable {
 		currentScope = scopeStack.get( scopeStack.size()-1 );
 	}
 	
+	// pops the top element off the scope stack, removes all of its vars form the stack
+	public void clear(){
+		while(scopeStack.size() > 1 ){
+			for(int i=currentScope.highIndex-1; i>=currentScope.lowIndex; --i){
+				varStack.remove(i);
+			}
+			scopeStack.remove(scopeStack.size()-1);
+			currentScope = scopeStack.get( scopeStack.size()-1 );
+		}
+		for(int i=currentScope.highIndex-1; i>=currentScope.lowIndex; --i){
+			varStack.remove(i);
+		}
+	}
+	
+	
 	// pushes a variable onto the stack, checks for variables with the same name
 	// returns either healthy, shadow or conflict
 	public SymbolDiagnosis pushSymbol(Symbol s){

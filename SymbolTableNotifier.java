@@ -40,6 +40,7 @@ enum SymbolTableEvent {
 	scopePopped,
 	symbolInserted,
 	symbolAssignedNewValue,
+	cleared
 };
 
 // ---------------------------------------------------------------------------
@@ -126,6 +127,12 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 	public void popScope(){
 		super.popScope();
 		notifyObservers(SymbolTableEvent.scopePopped);
+	}
+	
+	public void clear(){
+		super.clear();
+		notifyObservers(SymbolTableEvent.cleared);
+		
 	}
 
 	public SymbolDiagnosis pushSymbol(Symbol s){

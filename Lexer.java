@@ -472,9 +472,8 @@ public class Lexer {
 		while(n<listOfEndlines.size() && listOfEndlines.get(n)<=index){
 			n++;
 		}
-		n--; //to get n before index
 
-		return n+2; //return +1 since start at line 1, and +1 since previous endline is on the line before index
+		return n+1; //return +1 since start at line 1
 	}
 
 	public synchronized int getColumnNum(){
@@ -482,8 +481,7 @@ public class Lexer {
 		while(n<listOfEndlines.size() && listOfEndlines.get(n)<=index){
 			n++;
 		}
-		n--;
-
+		
 		return index-listOfEndlines.get(n);
 
 	}

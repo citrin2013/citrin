@@ -230,21 +230,39 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				System.out.println("DataDiaplay::update() on symbolInserted");
 			}
 			else if ( e == SymbolTableEvent.symbolAssignedNewValue) {
-				// TODO 
-				//
-				// This is not called from Interpreter
-				//
+				boolean found = false;
 				Symbol sym = stab.getAssignedSymbol();
 				String symName = stab.getAssignedSymbolName();
 				var_type v = sym.getData();
-				DefaultTableModel tmodel = (DefaultTableModel) tables.get(tables.size()-1).getModel();
-				for ( int i = 0; i < tmodel.getRowCount(); i++) {
-					String name = tmodel.getValueAt(i, 0).toString();
-					if ( name.equals( symName ) ) {
-						tmodel.setValueAt( v.value, i, 1 );
+				int index = tables.size()-1;;
+				while(!found && index >= 0){
+					DefaultTableModel tmodel = (DefaultTableModel) tables.get(index).getModel();
+					for ( int i = 0; i < tmodel.getRowCount(); i++) {
+						String name = tmodel.getValueAt(i, 0).toString();
+						if ( name.equals( symName ) ) {
+							tmodel.setValueAt( v.value, i, 1 );
+							found = true;
+						}
 					}
+					index--;
 				}
 				System.out.println("DataDiaplay::update() on symbolAssignedNewValue");
+			}
+			else if ( e == SymbolTableEvent.cleared) {
+				while (1<tableCount) {
+					remove( tableContainers.get( tableContainers.size()-1));
+					tableContainers.remove(tableContainers.size()-1);
+					tables.remove(tables.size()-1);
+					revalidate();
+					repaint();
+					tableCount--;
+				}
+				DefaultTableModel tmodel = (DefaultTableModel) tables.get(0).getModel();
+				for(int i=tmodel.getRowCount()-1;i>=0;i--){
+					tmodel.removeRow(i);
+				}
+				
+				System.out.println("DataDiaplay::update() on cleared");
 			}
 			else {
 				throw new RuntimeException("DataDisplay::update() Invalid SymbolTableEvent Supplied");
