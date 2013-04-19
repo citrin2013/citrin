@@ -1,4 +1,5 @@
 import java.lang.Double;
+import java.util.ArrayList;
 
 
 //TODO: ST stb = (sta, sta), stc; would call comma op but ST stb = sta, sta, stc; would repeatedly declare. 
@@ -86,7 +87,8 @@ public class ExpressionEvaluator {
 	  }
 	  token = lexer.get_token();
 	  var_type rhs = eval_exp2();
-
+	  result.constant = false;
+	  
 	  if(checkOnly){
 		  switch(op.charAt(0)){
 		  case '%':
@@ -189,16 +191,32 @@ public class ExpressionEvaluator {
 	  // if both are primitive types
 	  if(ifTrue.isNumber() && ifFalse.isNumber() ){
 		  result.v_type = var_type.getPromotionForBinaryOp(ifTrue.v_type, ifFalse.v_type);
-		  result.lvalue = ifTrue.lvalue && ifFalse.lvalue;
+
 	  }
 	  else{
 		  //check if either can be converted to other. result must have same type.
-		  interpreter.sntx_err("Ternary operator has not had classes implemented yet");
+		  interpreter.sntx_err("Ternary operator has not had arrays or classes implemented yet");
 	  }
 
+	  //set constant and lvalue
+	  result.lvalue = ifTrue.lvalue && ifFalse.lvalue;
+	  result.constant = false;
+	  if(conditional.constant){
+		  if(conditional.value.intValue()==1)
+			  result.constant = ifTrue.constant;
+		  else
+			  result.constant = ifFalse.constant;
+	  }
+	  
 	  // if only checking type we are done
 	  if(tempCheck){
 		  checkOnly = tempCheck;
+		  if(result.constant){
+			  if(conditional.value.intValue()==1)
+				  result.assignVal(ifTrue);
+			  else
+				  result.assignVal(ifFalse);
+		  }
 		  return result;		  
 	  }
 
@@ -257,7 +275,8 @@ public class ExpressionEvaluator {
 			partial_value = eval_exp5();
 			checkOnly = tempCheck;
 
-			if(checkOnly){
+			boolean constant = result.constant && partial_value.constant;
+			if(checkOnly && !constant){
 				result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			}
 			else{
@@ -307,7 +326,8 @@ public class ExpressionEvaluator {
 			partial_value = eval_exp6();
 			checkOnly = tempCheck;
 
-			if(checkOnly){
+			boolean constant = result.constant && partial_value.constant;
+			if(checkOnly && !constant){
 				result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			}
 			else{
@@ -343,7 +363,9 @@ public class ExpressionEvaluator {
 	  while(op.equals("|")){
 			token = lexer.get_token();
 			partial_value = eval_exp7();
-			if(checkOnly){
+			
+			boolean constant = result.constant && partial_value.constant;
+			if(checkOnly && !constant){
 				result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			}
 			else{
@@ -370,7 +392,9 @@ public class ExpressionEvaluator {
 	  while(op.equals("^")){
 			token = lexer.get_token();
 			partial_value = eval_exp8();
-			if(checkOnly){
+			
+			boolean constant = result.constant && partial_value.constant;
+			if(checkOnly && !constant){
 				result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			}
 			else{
@@ -396,7 +420,9 @@ public class ExpressionEvaluator {
 	  while(op.equals("&")){
 			token = lexer.get_token();
 			partial_value = eval_exp9();
-			if(checkOnly){
+			
+			boolean constant = result.constant && partial_value.constant;
+			if(checkOnly && !constant){
 				result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			}
 			else{
@@ -422,7 +448,10 @@ public class ExpressionEvaluator {
 
 		  token = lexer.get_token();
 		  partial_value = eval_exp10();
-		  if(checkOnly){
+		  
+		  boolean constant = result.constant && partial_value.constant;
+		  if(checkOnly && !constant){
+			  result = new var_type();
 			  result.v_type = keyword.BOOL;
 		  }
 		  else{
@@ -447,7 +476,9 @@ public class ExpressionEvaluator {
 
 		  token = lexer.get_token();
 		  partial_value = eval_exp11();
-		  if(checkOnly){
+
+		  boolean constant = result.constant && partial_value.constant;
+		  if(checkOnly && !constant){
 			  result.v_type = keyword.BOOL;
 		  }
 		  else{
@@ -472,7 +503,9 @@ public class ExpressionEvaluator {
 	  while(op.equals(">>") || op.equals("<<") ){
 		token = lexer.get_token();
 		partial_value = eval_exp12();
-		if(checkOnly){
+
+		boolean constant = result.constant && partial_value.constant;
+		if(checkOnly && !constant){
 			result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			return result;
 		}
@@ -495,7 +528,8 @@ public class ExpressionEvaluator {
 		token = lexer.get_token();
 		partial_value = eval_exp13();
 		if(op.equals("-")){
-			if(checkOnly){
+			boolean constant = result.constant && partial_value.constant;
+			if(checkOnly && !constant){
 				result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			}
 			else{
@@ -503,7 +537,8 @@ public class ExpressionEvaluator {
 			}
 		}
 		if(op.equals("+")){
-			if(checkOnly){
+			boolean constant = result.constant && partial_value.constant;
+			if(checkOnly && !constant){
 				result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			}
 			else{
@@ -526,7 +561,9 @@ public class ExpressionEvaluator {
 	  while(op.equals("*") || op.equals("/") || op.equals("%") ){		
 		token = lexer.get_token();
 		partial_value = eval_exp14();
-		if(checkOnly){
+		
+		boolean constant = result.constant && partial_value.constant;
+		if(checkOnly && !constant){
 			result = result.getReturnTypeFromBinaryOp(op, partial_value);
 			return result;
 		}
@@ -578,7 +615,7 @@ public class ExpressionEvaluator {
 
 	  if(op==null) return result;
 
-	  //if(checkOnly) only need to simplify work from overloaded operators
+	  //TODO if(checkOnly) only need to simplify work from overloaded operators
 
 	  if( op.equals("-") ){
 		  result = result.unaryMinus();
@@ -659,7 +696,53 @@ public class ExpressionEvaluator {
 					result = temp;
 				}
 				else if(op.equals("[")){
-					interpreter.sntx_err("arrays have not been implemented");
+					if(result.v_type != keyword.ARRAY)
+						interpreter.sntx_err("Operator [] can only be used with an array type");
+					
+					token = lexer.get_token();
+					var_type index = new var_type();
+					index.v_type = keyword.INT;
+
+					//get index
+					var_type indexVar = eval_exp0();
+					if(!checkOnly)
+						index.assignVal(indexVar);
+					
+					int i=0;
+					//check bounds
+					if(!checkOnly){
+						i = index.value.intValue();
+						if(i < 0 || i >= result.bounds.get(0))
+							interpreter.sntx_err("array index out of bounds");
+					}
+					
+					//get type of var after taking one index
+					var_type newResult;
+					if(result.bounds.size()==1){ // var won't be an array
+						if(checkOnly)
+							newResult = new var_type(result.array_type);
+						else{
+							newResult = symbolTable.getVar(result.value.intValue()+i).data;
+						}
+						newResult.lvalue = true;
+					}
+					else{ // var is still an array
+						newResult = new var_type(result);
+						newResult.bounds = new ArrayList<Integer>();
+						int offset = i;
+						for(int j=1;j<result.bounds.size();j++){
+							newResult.bounds.add(result.bounds.get(j));
+							if(!checkOnly)
+								offset*=result.bounds.get(j);
+						}
+						if(!checkOnly){
+							newResult.address+=offset;
+							newResult.value = newResult.value.intValue()+offset;						
+						}
+					}
+
+					result = newResult;
+
 				}
 				else if(op.equals(".")){
 					interpreter.sntx_err("classes have not been implemented");
@@ -722,8 +805,9 @@ public class ExpressionEvaluator {
 					  value = interpreter.call(token.value);				  
 				  }
 
-				 // if value is not a reference
+				 //TODO: if value is not a reference
 				 value.lvalue = false;
+				 value.constant = false;
 			}
 		  else {
 			  symbol = symbolTable.findVar(token.value); // get var's value
@@ -732,8 +816,9 @@ public class ExpressionEvaluator {
 			  else
 				  value = symbol.data;
 			  
+			  value.lvalue = true;
 		  }
-		  value.lvalue = true;
+
 		  token = lexer.get_token();
 		  return value;
 
@@ -746,6 +831,7 @@ public class ExpressionEvaluator {
 			  value.value = Double.parseDouble(token.value);
 			  value.v_type = keyword.DOUBLE;
 		  }
+		  value.constant = true;
 		  value.lvalue = false;
 		  token = lexer.get_token();
 		  return value;
@@ -755,6 +841,7 @@ public class ExpressionEvaluator {
 			value.value = (int) token.value.charAt(1);
 			token = lexer.get_token();
 			value.lvalue = false;
+			value.constant = true;
 			return value;
 
 		case OPERATOR:
@@ -764,8 +851,10 @@ public class ExpressionEvaluator {
 		case DELIMITER: 
 		  //process empty expression return 0 TODO: verify this works 
 		  //TODO cant use charAt here
-		  if(token.value.charAt(0) == ')') return value; 
-		  else interpreter.sntx_err("Bad delimiter: '" +token.value+ "' in expression");
+		  //if(token.value.charAt(0) == ')') return value; 
+		  if(token.value.equals("]"))
+			  interpreter.sntx_err("Expected primary expression before: ] token");
+		  interpreter.sntx_err("Bad delimiter: '" +token.value+ "' in expression");
 		default:
 		  interpreter.sntx_err("Unkown Error, CITRIN might not recognize this: "+token.value);
 		  }
@@ -773,6 +862,7 @@ public class ExpressionEvaluator {
 	  }
 
 	// used when .func() or .mem or similar
+	// TODO this was probably a bad idea
 	private var_type atomOf(var_type c) throws StopException, SyntaxError {
 		  //int i=0;
 		  var_type value = new var_type();

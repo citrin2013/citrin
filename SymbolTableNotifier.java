@@ -148,6 +148,13 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 		return insertedSymbolDiagnosis;
 	}
 
+	public SymbolDiagnosis pushArray(Symbol arrSymbol, ArrayList<Symbol> arrayData){
+		insertedSymbol = arrSymbol;
+		insertedSymbolDiagnosis = super.pushArray(arrSymbol, arrayData);
+		notifyObservers( SymbolTableEvent.symbolInserted );
+		return insertedSymbolDiagnosis;
+	}
+	
 	Symbol assignVar(String varName, var_type value){
 		assignedSymbol = super.assignVar(varName, value);
 		assignedSymbolName = varName;
@@ -158,7 +165,10 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 	// function to notify when a var is updated
 	void updatedVar(int address){
 		assignedSymbol = varStack.get(address);
-		assignedSymbolName = varStack.get(address).data.var_name;
+		while(assignedSymbol.data.memberOf!=null){
+			assignedSymbol = assignedSymbol.data.memberOf;
+		}
+		assignedSymbolName = assignedSymbol.data.var_name;
 		notifyObservers( SymbolTableEvent.symbolAssignedNewValue );
 	}
 

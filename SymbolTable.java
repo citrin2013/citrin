@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 
 
 //Symbol Auxilaries
@@ -64,6 +65,7 @@ class Scope{
 	}
 	
 	
+	HashMap<String, Symbol> symbols = new HashMap<String, Symbol>();
 	String name;
 	Scope parent;
 	int lowIndex;
@@ -92,16 +94,19 @@ public class SymbolTable {
 	
 	// function which searches current scope and its parent's scope and its grandparent's scope...
 	private Symbol findVar(String name, Scope scope){
-		for(int i=scope.lowIndex; i<scope.highIndex; i++){
-			var_type v = varStack.get(i).data;
-			if(v.var_name.equals(name))
-				return varStack.get(i);
-		}
 		
+		if(scope.symbols.containsKey(name)){
+			return scope.symbols.get(name);
+		}
 		if(scope.parent==null)
 			return null;
 		else
 			return findVar(name, scope.parent);
+	}
+	
+	//function to get a var at an address
+	public Symbol getVar(int address){
+		return varStack.get(address);
 	}
 	
 	// push a new scope with the parent set as the global scope
@@ -137,6 +142,7 @@ public class SymbolTable {
 		for(int i=currentScope.highIndex-1; i>=currentScope.lowIndex; --i){
 			varStack.remove(i);
 		}
+		currentScope.symbols = new HashMap<String, Symbol>();
 	}
 	
 	
@@ -152,18 +158,50 @@ public class SymbolTable {
 		
 		// check if variable is a conflict
 		if(nameMatch){
-			for(int i=currentScope.lowIndex; i<currentScope.highIndex; ++i){
-				var_type v = varStack.get(i).data;
-				if(v.var_name.equals(s.data.var_name))
-					return SymbolDiagnosis.Conflict;
-			}
+			if(currentScope.symbols.containsKey(s.data.var_name))
+				return SymbolDiagnosis.Conflict;
 		}
 		
 		// add variable to varStack
 		s.data.address = currentScope.highIndex;
 		currentScope.highIndex++;
 		varStack.add(s);
+		currentScope.symbols.put(s.data.var_name, s);
 		
+		//return diagnosis
+		if(nameMatch)
+			return SymbolDiagnosis.Shadow;
+		else
+			return SymbolDiagnosis.Healthy;
+	}
+	
+	// pushes a variable onto the stack, checks for variables with the same name
+	// returns either healthy, shadow or conflict
+	public SymbolDiagnosis pushArray(Symbol arrSymbol, ArrayList<Symbol> arrayData){
+		//check if there is a variable visible with the same name
+		boolean nameMatch;
+		if(findVar(arrSymbol.data.var_name)==null)
+			nameMatch = false;
+		else
+			nameMatch = true;
+		
+		// check if variable is a conflict
+		if(nameMatch){
+			if(currentScope.symbols.containsKey(arrSymbol.data.var_name))
+				return SymbolDiagnosis.Conflict;
+		}
+		
+		// add arrSymbol to map only
+		arrSymbol.data.address = currentScope.highIndex;
+		arrSymbol.data.value = currentScope.highIndex;
+		currentScope.symbols.put(arrSymbol.data.var_name, arrSymbol);
+		
+		for(int i=0;i<arrayData.size();i++){
+			currentScope.highIndex++;
+			varStack.add(arrayData.get(i));
+			varStack.get(i).data.address = currentScope.highIndex-1;
+		}
+
 		//return diagnosis
 		if(nameMatch)
 			return SymbolDiagnosis.Shadow;
@@ -173,7 +211,12 @@ public class SymbolTable {
 	
 	Symbol assignVar(String varName, var_type value){
 		Symbol s = findVar(varName);
-		s.data.assignVal(value);
+		try {
+			s.data.assignVal(value);
+		} catch (SyntaxError e) {
+			// TODO: this shouldnt happen
+			e.printStackTrace();
+		}
 		return s;
 	}
 	

@@ -414,7 +414,20 @@ private void decl_var() throws StopException, SyntaxError{
 		token = lexer.get_token(); /* get var name */
 		SymbolLocation loc = new SymbolLocation(lexer.getLineNum(),lexer.getColumnNum());
 		i.var_name = new String(token.value);
-
+		i.lvalue = true;
+		
+		//check for array
+		token = lexer.get_token();
+		if(token.value.equals("[")){
+			lexer.putback();
+			decl_arr(i,loc);	
+			token = lexer.get_token();
+			continue;
+		}
+		else{
+			lexer.putback();
+		}
+		
 		//check for initialize
 		token = lexer.get_token();
 		if(token.value.equals("=")){ //initialize
@@ -445,6 +458,66 @@ private void decl_var() throws StopException, SyntaxError{
 	}
 }
 
+
+	void decl_arr(var_type var, SymbolLocation loc) throws SyntaxError, StopException{
+		token = lexer.get_token();
+		ArrayList<Integer> bounds = new ArrayList<Integer>();
+		while(token.value.equals("[")){
+			token = lexer.get_token();
+			int size;
+			if(token.value.equals("]")){
+				size = -1;
+				if(bounds.size()!=0){
+					sntx_err("Declaration of "+var.var_name+" must have bounds for all dimensions except the first");
+				}
+			}
+			else{
+				lexer.putback();
+				var_type val;
+				val = evalOrCheckExpression(false);
+				if(!val.isNumber() || val.v_type == keyword.DOUBLE || val.v_type == keyword.FLOAT){
+					sntx_err("Size of array must be an integral type");
+				}
+				if(!val.constant){
+					sntx_err("Array size cannot be variable");
+				}
+				size = val.value.intValue();
+				token = lexer.get_token();
+				if(!token.value.equals("]")){
+					sntx_err("Expecting ]");
+				}
+			}
+			bounds.add(size);
+
+			token = lexer.get_token();	
+		}
+		lexer.putback();
+		
+		var_type arr = new var_type();
+		arr.var_name = var.var_name;
+		arr.v_type = keyword.ARRAY;
+		arr.array_type = var;
+		arr.bounds = bounds;
+		
+		//check for initialize
+		//TODO;
+		int product = 1;
+		for(int i=0;i<bounds.size();i++){
+			product*=bounds.get(i);
+		}
+		
+		ArrayList<Symbol> arrayData = new ArrayList<Symbol>();
+		var.var_name = null;
+		Symbol arrSymbol = new Symbol(loc,arr);
+		var.memberOf = arrSymbol;
+		for(int i=0;i<product;i++){
+			var_type v = new var_type(var);
+			arrayData.add(new Symbol(loc,v));
+		}
+		arr.data = arrayData;
+		symbolTable.pushArray(arrSymbol, arrayData);
+		
+	}
 
 
 	void exec_while() throws StopException, SyntaxError{

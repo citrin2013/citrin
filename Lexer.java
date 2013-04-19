@@ -287,7 +287,7 @@ public class Lexer {
 			return (token);
 			}
 
-		if( ";'()".indexOf(prog[index])>=0 ){ /* delimiter */
+		if( ";'()[]".indexOf(prog[index])>=0 ){ /* delimiter */
 			token.value = Character.toString(prog[index]);
 			index++;
 			token.type = token_type.DELIMITER;
@@ -482,7 +482,11 @@ public class Lexer {
 			n++;
 		}
 		
-		return index-listOfEndlines.get(n);
+		if(n==0)
+			return index;
+		else
+			return index-listOfEndlines.get(n-1);
+		
 
 	}
 

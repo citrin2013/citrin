@@ -222,8 +222,20 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				Symbol s = stab.getInsertedSymbol();
 				SymbolLocation loc = s.getLocation();
 				var_type v = s.getData();
-
-				final Object[][] row = { { v.var_name, v.value} }; 
+				
+				String str;
+				if(v.v_type == keyword.ARRAY && v.bounds.size() == 1){
+					str = "{" + v.data.get(0).data.getDisplayVal();
+					for(int i=1;i<v.bounds.get(0);i++){
+						str = str+", "+v.data.get(i).data.getDisplayVal();
+					}
+					str = str + "}";
+				}
+				else{
+					str = v.getDisplayVal();
+				}
+				
+				final Object[][] row= { { v.var_name, str} }; 
 				JTable table = tables.get( tables.size() - 1 );
 				DefaultTableModel tmodel = (DefaultTableModel) table.getModel();
 				tmodel.addRow(row[0]);
@@ -234,13 +246,26 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				Symbol sym = stab.getAssignedSymbol();
 				String symName = stab.getAssignedSymbolName();
 				var_type v = sym.getData();
-				int index = tables.size()-1;;
+				int index = tables.size()-1;
+				
+				String str;
+				if(v.v_type == keyword.ARRAY && v.bounds.size() == 1){
+					str = "{" + v.data.get(0).data.getDisplayVal();
+					for(int i=1;i<v.bounds.get(0);i++){
+						str = str+", "+v.data.get(i).data.getDisplayVal();
+					}
+					str = str + "}";
+				}
+				else{
+					str = v.getDisplayVal();
+				}
+				
 				while(!found && index >= 0){
 					DefaultTableModel tmodel = (DefaultTableModel) tables.get(index).getModel();
 					for ( int i = 0; i < tmodel.getRowCount(); i++) {
 						String name = tmodel.getValueAt(i, 0).toString();
 						if ( name.equals( symName ) ) {
-							tmodel.setValueAt( v.value, i, 1 );
+							tmodel.setValueAt( str, i, 1 );
 							found = true;
 						}
 					}
