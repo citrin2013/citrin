@@ -223,17 +223,7 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				SymbolLocation loc = s.getLocation();
 				var_type v = s.getData();
 				
-				String str;
-				if(v.v_type == keyword.ARRAY && v.bounds.size() == 1){
-					str = "{" + v.data.get(0).data.getDisplayVal();
-					for(int i=1;i<v.bounds.get(0);i++){
-						str = str+", "+v.data.get(i).data.getDisplayVal();
-					}
-					str = str + "}";
-				}
-				else{
-					str = v.getDisplayVal();
-				}
+				String str = v.getDisplayVal();
 				
 				final Object[][] row= { { v.var_name, str} }; 
 				JTable table = tables.get( tables.size() - 1 );
@@ -248,17 +238,7 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 				var_type v = sym.getData();
 				int index = tables.size()-1;
 				
-				String str;
-				if(v.v_type == keyword.ARRAY && v.bounds.size() == 1){
-					str = "{" + v.data.get(0).data.getDisplayVal();
-					for(int i=1;i<v.bounds.get(0);i++){
-						str = str+", "+v.data.get(i).data.getDisplayVal();
-					}
-					str = str + "}";
-				}
-				else{
-					str = v.getDisplayVal();
-				}
+				String str = v.getDisplayVal();
 				
 				while(!found && index >= 0){
 					DefaultTableModel tmodel = (DefaultTableModel) tables.get(index).getModel();

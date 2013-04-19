@@ -268,16 +268,17 @@ public class Interpreter implements Runnable {
 
 
 void printVarVal(var_type v){
-	String message = "";
-	if(v.v_type == keyword.INT || v.v_type == keyword.SHORT || v.v_type == keyword.BOOL )
-		message += ( v.var_name + " = " + v.value.intValue() + "\n");
-	else if(v.v_type == keyword.CHAR)
-		message += ( v.var_name + " = " + (char)(v.value.intValue()) + "\n");			
-	else if(v.v_type == keyword.FLOAT || v.v_type  == keyword.DOUBLE)
-		message += ( v.var_name + " = " + v.value.doubleValue() + "\n");
+	var_type val = v;
+	while(val.memberOf!=null){
+		val = val.memberOf.data;
+	}
 
-	controller.consoleOut(message);
-
+	String message = val.getDisplayVal();
+	if(message!=null)
+		controller.consoleOut(val.var_name+" = "+val.getDisplayVal()+'\n');
+	else
+		controller.consoleOut("Updated "+val.var_name+'\n');
+	
 }
 
 
@@ -516,6 +517,8 @@ private void decl_var() throws StopException, SyntaxError{
 		}
 		arr.data = arrayData;
 		symbolTable.pushArray(arrSymbol, arrayData);
+		if(!checkOnly)
+			printVarVal(arr);
 		
 	}
 

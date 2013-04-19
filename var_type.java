@@ -498,7 +498,14 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			return ""+(char)value.intValue();
 		else if(v_type == keyword.BOOL)
 			return value.intValue()==1? "true" : "false";
-		
+		else if(v_type == keyword.ARRAY && bounds.size() == 1){
+			String str = "{" + data.get(0).data.getDisplayVal();
+			for(int i=1;i<bounds.get(0);i++){
+				str = str+", "+data.get(i).data.getDisplayVal();
+			}
+			str = str + "}";
+			return str;
+		}
 		return null;
 		
 	}
