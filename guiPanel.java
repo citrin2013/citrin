@@ -44,10 +44,13 @@ import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
 import javax.swing.text.*;
 import javax.swing.undo.AbstractUndoableEdit;
+import javax.swing.undo.UndoManager;
 
-public class guiPanel extends JPanel	implements ActionListener {
+public class guiPanel extends JPanel	implements ActionListener, UndoableEditListener {
 
 	// C++ source file this application has the focus on currently
 	// When tab focus changes this variable should refer to the file the tab contains
@@ -66,11 +69,10 @@ public class guiPanel extends JPanel	implements ActionListener {
 	//Menu items for Edit
 	private JMenuItem undo;
 	private JMenuItem redo;
-	private JButton pasteButton;
-
-
+	private Editor editor;
+	private JButton jb_undo, jb_redo;
 //	private JTextArea area;
-
+	private UndoManager undoredo;
 	private Controller controller;
 
 	//TODO: need functionality to keep track of what action was just done
@@ -89,20 +91,14 @@ public class guiPanel extends JPanel	implements ActionListener {
 		//JMenu styleMenu = new JMenu("Style");
 		JMenu helpMenu = new JMenu("Help");
 		JMenu runMenu = new JMenu("Run");
-
+		currentCppSourceFile = null;
 		
-		//menu items for the menu "File"
-		// newFile = new JMenuItem("New");
-		// openFile = new JMenuItem("Open");
-		// saveFile = new JMenuItem("Save");
-		// saveAsFile = new JMenuItem("Save As");
-		// run = new JMenuItem("Run");
-		// exit = new JMenuItem("Exit");
-
 		//menu items for "Edit"
 		redo = new JMenuItem("Redo");
 		undo = new JMenuItem("Undo");
-
+		undoredo = new UndoManager();
+		jb_undo = new JButton(new ImageIcon("undo.png"));
+		jb_redo = new JButton(new ImageIcon("redo.png"));
 		//help menu
 		tutorial = new JMenuItem("Tutorial");
 
@@ -112,20 +108,6 @@ public class guiPanel extends JPanel	implements ActionListener {
 		topBar.add(runMenu);
 		//topBar.add(styleMenu);
 		topBar.add(helpMenu);
-
-		//add the menu items to File
-		// fileMenu.add(newFile);
-		// fileMenu.addSeparator(); //separator between menu items
-		// fileMenu.add(openFile);
-		// fileMenu.addSeparator();
-		// fileMenu.add(saveFile);
-		// fileMenu.addSeparator();
-		// fileMenu.add(saveAsFile);
-		// fileMenu.addSeparator();
-		// fileMenu.add(run);
-		// fileMenu.addSeparator();
-		// fileMenu.add(exit);
-
 
 		helpMenu.add(tutorial);
 
@@ -208,17 +190,13 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 		Console console = new Console();
 		console.setEditable(false);
-		Editor editor = new Editor();
+		editor = new Editor();
 
 		JScrollPane scrollPane = new JScrollPane(editor);
 		
 		//add line numbers to editor
 		TextLineNumber tln = new TextLineNumber(editor);
 		scrollPane.setRowHeaderView(tln);
-		
-		//add line numbers to editor
-	//	TextLineNumber tln = new TextLineNumber(editor);
-	//	scrollPane.setRowHeaderView(tln);
 		
 		JScrollPane scrollPane2 = new JScrollPane(console);
 
@@ -236,18 +214,18 @@ public class guiPanel extends JPanel	implements ActionListener {
 		//tabbedPane3.addTab("States", null);
 		tabbedPane3.add("States", scrollPane3);
 
-		fileMenu.add(new OpenAction(editor));
+		fileMenu.add(new OpenAction("Open", editor));
 		fileMenu.addSeparator();
-		fileMenu.add(new SaveAction("Save", editor, true));
-		fileMenu.add(new SaveAction("SaveAs", editor, false));
+		fileMenu.add(new SaveAction("Save", editor));
+		fileMenu.add(new SaveAction("SaveAs", editor));
 		fileMenu.addSeparator();
 		fileMenu.add(new ExitAction());
 
-		runMenu.add(new RunAllAction(console)); 
-		runMenu.add(new StepAction(console));
+		runMenu.add(new RunAllAction("RunAll", console)); 
+		runMenu.add(new StepAction("RunStep", console));
 		runMenu.add(new RunToBreakpointAction(console));
 
-		JButton open = new JButton(new OpenActionButton(editor));
+		JButton open = new JButton(new OpenAction("", editor));
 		open.setToolTipText("Open");
 		
 		//buttons for cut, copy, paste
@@ -263,7 +241,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 		JButton stopRunButton = new JButton(stopAction);
 		
 		//button for runAll
-		Action runAllAction = new RunAllActionButton();
+		Action runAllAction = new RunAllAction("", console);
 		JButton runAll = new JButton(runAllAction);
 		runAll.setToolTipText("Run All (F11)");
 		runAllAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("F11"));
@@ -271,7 +249,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 		runAll.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put((KeyStroke) runAllAction.getValue(Action.ACCELERATOR_KEY), "runAll")
 ;
 		//button for runStep
-		Action runStepAction = new StepActionButton();
+		Action runStepAction = new StepAction("", console);
 		JButton runStep = new JButton(runStepAction);
 		runStep.setToolTipText("Run Step (F1)");
 		runStepAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("F1"));
@@ -280,13 +258,14 @@ public class guiPanel extends JPanel	implements ActionListener {
 ;
 		
 		//button for save
-		Action saveAction = new SaveActionButton("", editor, true);
+		Action saveAction = new SaveAction("", editor);
 		saveAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control S"));
 		JButton save = new JButton(saveAction);
 		save.getActionMap().put("save", saveAction);
 		save.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put((KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), "save")
 ;
 		save.setToolTipText("Save (Ctrl+S)");
+
 
 		editToolBar.add(open);
 		editToolBar.add(cut);
@@ -295,6 +274,8 @@ public class guiPanel extends JPanel	implements ActionListener {
 		editToolBar.add(runAll);
 		editToolBar.add(runStep);
 		editToolBar.add(save);
+		editToolBar.add(jb_undo);
+		editToolBar.add(jb_redo);
 		editToolBar.add(stopRunButton);
 		
 
@@ -330,7 +311,12 @@ public class guiPanel extends JPanel	implements ActionListener {
 		//setLocation(0,0); //This line doesn't seem to be necessary.
 
 		controller = new Controller(console);	
-
+		editor.getDocument().addUndoableEditListener(this);
+		undo.addActionListener(this);
+		redo.addActionListener(this);
+		jb_undo.addActionListener(this);
+		jb_redo.addActionListener(this);
+		
 	}
 
 
@@ -363,6 +349,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 	}
 
+
 	public static void main(String args[]){
 
 		// Set the look and feel to that of the system
@@ -379,8 +366,14 @@ public class guiPanel extends JPanel	implements ActionListener {
 			}
 			});
 
-
 	}
+	
+	@Override
+	public void undoableEditHappened(UndoableEditEvent edit) {
+		undoredo.addEdit(edit.getEdit());
+		
+	}
+
 
 	/*
 	public void  saveFileAs() throws IOException	{
@@ -429,26 +422,27 @@ public class guiPanel extends JPanel	implements ActionListener {
 	}
 
 	// An action that saves the document to a file : Supports Save and SaveAs actoins 
-	class SaveActionButton extends AbstractAction {
+	/*class SaveActionButton extends AbstractAction {
 
 		// PossibleBugSource : Saving to class member variable currentCppSourceFile
 
 		JTextComponent textComponent;
-		boolean saveToCurrentFile;
+		//boolean saveToCurrentFile;
 
 		// label				... label to show on the view
 		// textComponent		... the view and model that keeps and show the text data
 		// saveToCurrentFile	... false => prompts the user for the file, true => save to curent file
-		public SaveActionButton(String label, JTextComponent textComponent, boolean saveToCurrentFile) {
+		public SaveActionButton(String label, JTextComponent textComponent){//, boolean saveToCurrentFile) {
 			super("", new ImageIcon("saved.gif"));
 			this.textComponent = textComponent;
-			this.saveToCurrentFile = saveToCurrentFile;
+		//	this.saveToCurrentFile = saveToCurrentFile;
 			
 		}
 
 		public void actionPerformed(ActionEvent ev) {
+			undoredo.discardAllEdits();
 			File file;
-			if ( ! saveToCurrentFile ) {
+		/*	if ( ! saveToCurrentFile ) {
 			JFileChooser chooser = new JFileChooser();
 			if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
 				return;
@@ -456,9 +450,20 @@ public class guiPanel extends JPanel	implements ActionListener {
 			if (file == null)
 				return;
 			} 
-			else {
-				file = new File(currentCppSourceFile);
-			}
+			else {*/
+		/*		if(currentCppSourceFile != null){
+					file = new File(currentCppSourceFile);
+				}
+				else{
+					JFileChooser chooser = new JFileChooser();
+					if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
+						return;
+					file = chooser.getSelectedFile();
+					if (file == null)
+						return;
+					} 
+				//}
+		//	}
 
 			FileWriter writer = null;
 			try {
@@ -477,65 +482,80 @@ public class guiPanel extends JPanel	implements ActionListener {
 			}
 		}
 
-	}
+	}*/
 
 	// An action that saves the document to a file : Supports Save and SaveAs actoins 
 	class SaveAction extends AbstractAction {
-
 		// PossibleBugSource : Saving to class member variable currentCppSourceFile
 
-		JTextComponent textComponent;
-		boolean saveToCurrentFile;
+				JTextComponent textComponent;
+				//boolean saveToCurrentFile;
 
-		// label				... lable to show on the view
-		// textComponent		... the view and model that keeps and show the text data
-		// saveToCurrentFile	... false => prompts the user for the file, true => save to curent file
-		public SaveAction(String label, JTextComponent textComponent, boolean saveToCurrentFile) {
-			super(label, new ImageIcon("saved.gif"));
-			this.textComponent = textComponent;
-			this.saveToCurrentFile = saveToCurrentFile;
-		}
+				// label				... label to show on the view
+				// textComponent		... the view and model that keeps and show the text data
+				// saveToCurrentFile	... false => prompts the user for the file, true => save to curent file
+				public SaveAction(String label, JTextComponent textComponent){//, boolean saveToCurrentFile) {
+					super(label, new ImageIcon("saved.gif"));
+					this.textComponent = textComponent;
+				//	this.saveToCurrentFile = saveToCurrentFile;
+					
+				}
 
-		public void actionPerformed(ActionEvent ev) {
-			
-			File file;
-			if ( ! saveToCurrentFile ) {
-			JFileChooser chooser = new JFileChooser();
-			if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
-				return;
-			file = chooser.getSelectedFile();
-			if (file == null)
-				return;
-			} 
-			else {
-				file = new File(currentCppSourceFile);
-			}
+				public void actionPerformed(ActionEvent ev) {
 
-			FileWriter writer = null;
-			try {
-				writer = new FileWriter(file);
-				textComponent.write(writer);
-			} catch (IOException ex) {
-			JOptionPane.showMessageDialog(null,
-				"File Not Saved", "ERROR", JOptionPane.ERROR_MESSAGE);
-			} finally {
-				if (writer != null) {
+					File file;
+				/*	if ( ! saveToCurrentFile ) {
+					JFileChooser chooser = new JFileChooser();
+					if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
+						return;
+					file = chooser.getSelectedFile();
+					if (file == null)
+						return;
+					} 
+					else {*/
+						if(currentCppSourceFile != null){
+							file = new File(currentCppSourceFile);
+						}
+						else{
+							JFileChooser chooser = new JFileChooser();
+							if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
+								return;
+							file = chooser.getSelectedFile();
+							currentCppSourceFile = file.toString();
+							undoredo.discardAllEdits();
+							} 
+						//}
+				//	}
+
+					FileWriter writer = null;
 					try {
-						writer.close();
-					} catch (IOException x) {
+						writer = new FileWriter(file);
+						textComponent.write(writer);
+					} catch (IOException ex) {
+					JOptionPane.showMessageDialog(null,
+						"File Not Saved", "ERROR", JOptionPane.ERROR_MESSAGE);
+					} finally {
+						if (writer != null) {
+							try {
+								writer.close();
+							} catch (IOException x) {
+							}
+						}
 					}
 				}
-			}
-		}
 	}
 
 	// An action that opens an existing file
-	class OpenAction extends AbstractAction {
+	public class OpenAction extends AbstractAction implements UndoableEditListener{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
 		JTextComponent textComponent;
 
 		// textComponent ... this action opens a file into this textComponent
-		public OpenAction(JTextComponent textComponent) {
-			super("Open", new ImageIcon("open.gif"));
+		public OpenAction(String label, JTextComponent textComponent) {
+			super(label, new ImageIcon("open.gif"));
 			this.textComponent = textComponent;
 		}
 
@@ -569,13 +589,23 @@ public class guiPanel extends JPanel	implements ActionListener {
 					//hack to update line numbers
 					textComponent.setCaretPosition(textComponent.getDocument().getLength());
 					textComponent.setCaretPosition(0);
+					textComponent.getDocument().addUndoableEditListener(this);
+					//textComponent.getDocument().addUndoableEditListener( this);
 				}
+				
 			}
+		}
+
+		@Override
+		public void undoableEditHappened(UndoableEditEvent edit) {
+			// TODO Auto-generated method stub
+			undoredo.addEdit(edit.getEdit());
+			
 		}
 	}
 	
 	// An action that opens an existing file
-	class OpenActionButton extends AbstractAction {
+/*	class OpenActionButton extends AbstractAction {
 		JTextComponent textComponent;
 
 		// textComponent ... this action opens a file into this textComponent
@@ -615,17 +645,18 @@ public class guiPanel extends JPanel	implements ActionListener {
 				//hack to update line numbers
 				textComponent.setCaretPosition(textComponent.getDocument().getLength());
 				textComponent.setCaretPosition(0);
+				textComponent.getDocument().addUndoableEditListener((UndoableEditListener) this);
 			}
 		}
 	}
-
+*/
 	// An action that runs the interpreter on all the contents of the current cpp source file
 	class RunAllAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
 
-		public RunAllAction(JTextComponent display) {
-			super("RunAll", new ImageIcon("RunAll.gif"));
+		public RunAllAction(String label, JTextComponent display) {
+			super(label, new ImageIcon("RunAll.gif"));
 			this.display = display;
 		}
 
@@ -686,8 +717,8 @@ class RunAllActionButton extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
 
-		public StepAction(JTextComponent display) {
-			super("Step", new ImageIcon("step.gif"));
+		public StepAction(String label, JTextComponent display) {
+			super(label, new ImageIcon("step.gif"));
 			this.display = display;
 		}
 
@@ -712,7 +743,7 @@ class RunAllActionButton extends AbstractAction {
 
 	}
 	
-	class StepActionButton extends AbstractAction {
+	/*class StepActionButton extends AbstractAction {
 		String interpretation = "";
 		public StepActionButton(){
 			super("", new ImageIcon("step.gif"));
@@ -738,7 +769,7 @@ class RunAllActionButton extends AbstractAction {
 		}
 	}
 
-
+*/
 	class RunToBreakpointAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
@@ -790,12 +821,15 @@ class RunAllActionButton extends AbstractAction {
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-	/*	// TODO Auto-generated method stub 
-		ImageIcon t = new ImageIcon("saved.gif");
-		if(e.getSource() == saveButton){
-		saveButton.setIcon(t);
-		//saveButton.add(saveButton, new ImageIcon("saved.gif"));
-		}*/
+		if(e.getSource() == undo || e.getSource() == jb_undo){
+			if(undoredo.canUndo()){
+				undoredo.undo();
+			}		
+		}
+		else if(e.getSource() == redo || e.getSource() == jb_redo){
+			if(undoredo.canRedo()){
+			undoredo.redo();
+			}
+		}
 	}
-
 }
