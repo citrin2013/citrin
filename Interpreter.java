@@ -5,10 +5,52 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.Math;
+import java.io.Writer;
+import java.io.PrintWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.FileOutputStream;
+import java.io.FileDescriptor;
+
 
 //TODO should derive functions and vars from same base class to handle functions as parameters?
 //TODO should add base class for basic vars and classes?
 
+// ---------------------------------------------------------------------------
+// Interpretation
+//
+
+enum InterpreterEvent { 
+// Observable Events
+	InterpretationReady
+}
+
+enum InterpretationStatus {
+// Insane Should be more concreate and sould have sane name
+	Sane, 
+	Insane
+}
+
+class Interpretation {
+
+	InterpretationStatus status;
+	String interpretation; // Should be something more than String
+
+	Interpretation(InterpretationStatus status, String interpretation)
+	{
+		this.status = status;
+		this.interpretation = interpretation;
+	}
+
+	InterpretationStatus getStatus()
+	{
+		return status;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Interpreter class
+//
 public class Interpreter implements Runnable {
 
 	//public enum double_ops {LT, LE, GT, GE, EQ, NE};
@@ -18,7 +60,7 @@ public class Interpreter implements Runnable {
 	//private final int NUM_COMMANDS = 14;
 	private int numStepsToRun = 0;
 
-	public SymbolTableNotifier symbolTable;
+	public SymbolTableNotifier symbolTable; // TODO Should be SymbolTable but could be too late now.
 	private Controller controller;
 	private String CppSrcFile;
 	private boolean StopRun = false;
@@ -34,17 +76,112 @@ public class Interpreter implements Runnable {
 	private func_type func_table[] = new func_type[NUM_FUNC];
 	private int func_index = 0; // index into function table/
 
-	static private String interpretation = "";
+	// static private String interpretation = ""; // why static?
+	private String interpretation = ""; // why static?
 	Lexer lexer = null;
+
+	// -----------------------------------------------------------------------
+	// Driver 
+	public static boolean test(String currentCppSourceFile)
+	{
+		// System.out.println("Interpreter main");
+		// System.out.println(args[0]);
+
+		// Save Stdout And Redirect Stdout
+		PrintStream stdout = new PrintStream(new FileOutputStream(FileDescriptor.out));
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		System.setOut(new PrintStream(baos));
+
+		// 
+		boolean returnValue = true;
+
+		// Run Interpreter on given cpp file
+		SymbolTableNotifier stab = new SymbolTableNotifier(); 
+		Interpreter i = new Interpreter(currentCppSourceFile,-1, stab);
+		Interpretation result = null;
+		try {
+			result = i.runAll();
+		} catch (IOException e) {
+			System.out.println("IOException with the file " + currentCppSourceFile);
+		}
+		if (result == null ) {
+			returnValue = false;
+		}
+		if ( result.getStatus() != InterpretationStatus.Sane ) {
+			returnValue = false;
+		}
+
+		// write interpretation to "src".interpretation.txt
+		String interpretation = baos.toString();
+		String writeTo = currentCppSourceFile + ".interpretation.txt";
+		PrintWriter out = null;
+		try {
+			out = new PrintWriter( writeTo );
+		} catch (FileNotFoundException e) {
+			System.out.println(writeTo + " is not writable");	
+		}
+		out.println(interpretation);
+		out.close();
+
+
+		// Restore stdout
+		System.setOut(stdout);
+
+		// return success value
+		return returnValue;
+	}
+
+	public static void main(String[] args)
+	{
+
+        File file = new File("tests/");
+        File[] files = file.listFiles();
+        for (int i = 0; i < files.length; i++) {
+			String src = files[i].toString();
+			if (src.endsWith("cpp")) {
+				System.out.println("Running Interpreter on " + src);
+				boolean success = test(src);	
+				if (!success) {
+					System.err.println("====================================");
+					System.err.println("Error on " + src);
+					System.err.println("====================================");
+				}
+			}
+        }
+
+		/*
+		String currentCppSourceFile = "";
+
+		if ( args.length < 1 || 1 < args.length ) {
+			System.out.println("Usage : $ cmd cppfile");	
+			System.out.println("Number of arguments must be one.");	
+			System.exit( 1 );
+		}
+		else {
+			currentCppSourceFile = args[0];
+			System.out.println("Running on " + currentCppSourceFile);	
+		}
+		*/
+
+	}
+
 
 	// -----------------------------------------------------------------------
 	// Constructors
 
 	@SuppressWarnings("unused")
-	private Interpreter(){
+	private Interpreter(){}
 
-		}
+	public Interpreter(String s, int numSteps, SymbolTableNotifier stab)
+	{
+		// controller = c;
+		controller = null;
+		CppSrcFile = s;
+		numStepsToRun = numSteps;
+		this.symbolTable = stab;
+	}
 
+	// public Interpreter(Controller c, String s, int numSteps, SymbolTable stab)
 	public Interpreter(Controller c, String s, int numSteps, SymbolTableNotifier stab)
 	{
 		controller = c;
@@ -58,11 +195,10 @@ public class Interpreter implements Runnable {
 		CppSrcFile = s;
 		numStepsToRun = numSteps;
 		symbolTable = new SymbolTableNotifier();
-		
 	}
 
 	// -----------------------------------------------------------------------
-	// Interprete
+	// Interpreter
 
 	@Override
 	public void run() {
@@ -74,11 +210,15 @@ public class Interpreter implements Runnable {
 			e.printStackTrace();
 		}
 
-		controller.consoleOut("run ended");
-		controller.setInterpretingDone();
+		if (controller != null ) //ugly
+			controller.consoleOut("run ended");
+		else 
+			System.out.println("run ended");
+		if (controller != null ) //ugly
+			controller.setInterpretingDone();
 	}
 
-	public String runAll() throws IOException {
+	public Interpretation runAll() throws IOException {
 
 		interpretation = "";
 
@@ -87,8 +227,10 @@ public class Interpreter implements Runnable {
 
 		boolean good = prescan1();
 		if(good == false){
-			return interpretation;
-			}
+			return new Interpretation( 
+					InterpretationStatus.Insane, 
+					this.interpretation );
+		}
 
 		lexer.index = 0;
 		func_index = 0;
@@ -98,19 +240,28 @@ public class Interpreter implements Runnable {
 		try {
 			prescan();
 		} catch (SyntaxError e) {
-			controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
+			if (controller != null ) //ugly
+				controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
+			else
+				System.out.println("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
 		} /* find the location of all functions and global variables in the program */
 
 		if(!isUserFunc("main")){
-			controller.consoleOut("Syntax Error: main() not found\n");
-			return interpretation;
+			if (controller != null ) //ugly
+				controller.consoleOut("Syntax Error: main() not found\n");
+			else
+				System.out.println("Syntax Error: main() not found\n");
+			return new Interpretation( InterpretationStatus.Insane, interpretation );
 		}
 		ArrayList<var_type> args = new ArrayList<var_type>();
 		try {
 			index = find_func("main", args);
 		} catch (SyntaxError e1) {
-			controller.consoleOut("Syntax Error: main() not found\n");
-			return interpretation;
+			if (controller != null ) //ugly
+				controller.consoleOut("Syntax Error: main() not found\n");
+			else
+				System.out.println("Syntax Error: main() not found\n");
+			return new Interpretation( InterpretationStatus.Insane, interpretation );
 		} //set up call to main		
 		lexer.index = func_table[index].location;
 		symbolTable.pushFuncScope("main");
@@ -120,12 +271,15 @@ public class Interpreter implements Runnable {
 			interp_block(block_type.FUNCTION, true);
 		} catch (StopException e) {
 		} catch (SyntaxError e) {
-			controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
+			if (controller != null ) //ugly
+				controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
+			else
+				System.out.println("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
 		}
 		symbolTable.popScope();
 		symbolTable.clear();
 
-		return interpretation;
+ 		return new Interpretation( InterpretationStatus.Sane, interpretation );
 	}
 
 	public void test() throws IOException, SyntaxError {
@@ -267,198 +421,226 @@ public class Interpreter implements Runnable {
 }
 
 
-void printVarVal(var_type v){
-	var_type val = v;
-	while(val.memberOf!=null){
-		val = val.memberOf.data;
+	void printVarVal(var_type v){
+		var_type val = v;
+		while(val.memberOf!=null){
+			val = val.memberOf.data;
+		}
+
+		String message = val.getDisplayVal();
+		if(message!=null)
+			if (controller != null ) //ugly
+				controller.consoleOut(val.var_name+" = "+val.getDisplayVal()+'\n');
+			else
+				System.out.println(val.var_name+" = "+val.getDisplayVal()+'\n');
+		else
+			if (controller != null ) //ugly
+				controller.consoleOut("Updated "+val.var_name+'\n');
+			else
+				System.out.println("Updated "+val.var_name+'\n');
+		
 	}
 
-	String message = val.getDisplayVal();
-	if(message!=null)
-		controller.consoleOut(val.var_name+" = "+val.getDisplayVal()+'\n');
-	else
-		controller.consoleOut("Updated "+val.var_name+'\n');
-	
-}
+
+	public void run_err() {
+		interpretation += "Run Error";
+		// System.out.println("Run Error");
+		// TODO Auto-generated method stub
+
+	}
 
 
-public void run_err() {
-	interpretation += "Run Error";
-	// System.out.println("Run Error");
-	// TODO Auto-generated method stub
+	//TODO need to allow variables to be declared in a block and not accessible outside it!!!
+	private boolean check_block(){
+		int block = 0;
+		boolean syntaxGood = true;
 
-}
+		/* If interpreting single statement, return on
+		first semicolon.*/
+		do {
 
-
-//TODO need to allow variables to be declared in a block and not accessible outside it!!!
-private boolean check_block(){
-	int block = 0;
-	boolean syntaxGood = true;
-
-	/* If interpreting single statement, return on
-	first semicolon.*/
-	do {
-
-		try {
-			token = lexer.get_token();
-		} catch (SyntaxError e) {
-			controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
-			syntaxGood = false;
-		}
-		//TODO FIX SO CAN OPEN A NEW BLOCK
-		/* see what kind of token is up */
-		if(token.type==token_type.BLOCK) { /* if block delimiter */
-			if(token.value.charAt(0) == '{' && block==0){ /* is a block */
-				block = 1;/* interpreting block, not statement */
-			}
-			else if(token.value.equals("{") && block!=0){
-				controller.consoleOut("TODO: THIS IS VALID SYNTAX NOT allowed in CIRIN at line: "+lexer.getLineNum());
+			try {
+				token = lexer.get_token();
+			} catch (SyntaxError e) {
+				if (controller != null ) //ugly
+					controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+				else
+					System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 				syntaxGood = false;
+			}
+			//TODO FIX SO CAN OPEN A NEW BLOCK
+			/* see what kind of token is up */
+			if(token.type==token_type.BLOCK) { /* if block delimiter */
+				if(token.value.charAt(0) == '{' && block==0){ /* is a block */
+					block = 1;/* interpreting block, not statement */
+				}
+				else if(token.value.equals("{") && block!=0){
+
+					if (controller != null ) //ugly
+						controller.consoleOut("TODO: THIS IS VALID SYNTAX NOT allowed in CIRIN at line: "+lexer.getLineNum());
+					else
+						System.out.println("TODO: THIS IS VALID SYNTAX NOT allowed in CIRIN at line: "+lexer.getLineNum());
+					syntaxGood = false;
+				}
+				else{
+					if(block==0){
+						if (controller != null ) //ugly
+							controller.consoleOut("Expecting an expression before } at line: "+lexer.getLineNum() + '\n');
+						else
+							System.out.println("Expecting an expression before } at line: "+lexer.getLineNum() + '\n');
+						syntaxGood = false;
+						return syntaxGood;
+						}
+					else{
+						return syntaxGood;
+					}
+				}
+			}
+			else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER || token.type==token_type.CHAR 
+					|| token.type==token_type.OPERATOR || token.value.equals("(") ) {
+				/* Not a keyword, so process expression. */
+				lexer.putback(); /* restore token to input stream for
+								further processing by eval_exp() */
+				//evaluate
+				try {
+					evalOrCheckExpression(false);
+					token = lexer.get_token();
+					if(token.value.charAt(0)!=';'){ 
+						if (controller != null ) //ugly
+							controller.consoleOut("Expecting semicolon before line: "+lexer.getLineNum()+ " column: " + lexer.getColumnNum()+'\n');
+						else
+							System.out.println("Expecting semicolon before line: "+lexer.getLineNum()+ " column: " + lexer.getColumnNum()+'\n');
+						lexer.putback();
+						syntaxGood = false;
+					}
+				} catch (StopException e) {} 
+				catch (SyntaxError e) {
+					if (controller != null ) //ugly
+						controller.consoleOut(e.toString()+" at line: " +e.getLine()+'\n');
+					else
+						System.out.println(e.toString()+" at line: " +e.getLine()+'\n');
+					syntaxGood = false;
+					findEndOfStatement();
+				} 
+			}
+			else if(token.value.equals(";")){
+				// empty statement do nothing
+			}
+			else if(token.key!=null) /* is keyword */
+			switch(token.key) {
+
+			case SHORT:
+			case FLOAT:
+			case BOOL:
+			case DOUBLE:
+			case CHAR:
+			case INT: // declare local variables
+				lexer.putback();
+				try {
+					decl_var();
+				} catch (StopException e) {}
+				catch(SyntaxError e){
+					if (controller != null ) //ugly
+						controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+					else
+						System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
+					syntaxGood = false;
+				}
+				break;
+			case RETURN: // return from function call 
+				syntaxGood = syntaxGood && check_func_ret();
+				break;
+			case IF: // process an if statement 
+				syntaxGood = syntaxGood && check_if();
+				break;
+			/*case ELSE: // process an else statement 
+				find_eob(); // find end of else block and continue execution 
+				break;*/
+			case WHILE: // process a while loop 
+				syntaxGood = syntaxGood && check_while();
+				break;
+			case DO: // process a do-while loop 
+				syntaxGood = syntaxGood && check_do();
+				break;
+			default:
+				if(token.key != keyword.FINISHED){
+					if (controller != null ) //ugly
+						controller.consoleOut("CITRIN DOESNT RECOGNIZE THIS STATEMENT: " + token.value+" at line: " +lexer.getLineNum()+'\n');
+					else
+						System.out.println("CITRIN DOESNT RECOGNIZE THIS STATEMENT: " + token.value+" at line: " +lexer.getLineNum()+'\n');
+					syntaxGood = false;
+				}
 			}
 			else{
-				if(block==0){
-					controller.consoleOut("Expecting an expression before } at line: "+lexer.getLineNum() + '\n');
-					syntaxGood = false;
-					return syntaxGood;
-					}
-				else{
-					return syntaxGood;
-				}
-			}
-		}
-		else if(token.type == token_type.IDENTIFIER || token.type == token_type.NUMBER || token.type==token_type.CHAR 
-				|| token.type==token_type.OPERATOR || token.value.equals("(") ) {
-			/* Not a keyword, so process expression. */
-			lexer.putback(); /* restore token to input stream for
-							further processing by eval_exp() */
-			//evaluate
-			try {
-				evalOrCheckExpression(false);
-				token = lexer.get_token();
-				if(token.value.charAt(0)!=';'){ 
-					controller.consoleOut("Expecting semicolon before line: "+lexer.getLineNum()+ 
-							" column: " + lexer.getColumnNum()+'\n');
-					lexer.putback();
-					syntaxGood = false;
-				}
-			} catch (StopException e) {} 
-			catch (SyntaxError e) {
-				controller.consoleOut(e.toString()+" at line: " +e.getLine()+'\n');
-				syntaxGood = false;
-				findEndOfStatement();
-			} 
-		}
-		else if(token.value.equals(";")){
-			// empty statement do nothing
-		}
-		else if(token.key!=null) /* is keyword */
-		switch(token.key) {
-
-		case SHORT:
-		case FLOAT:
-		case BOOL:
-		case DOUBLE:
-		case CHAR:
-		case INT: // declare local variables
-			lexer.putback();
-			try {
-				decl_var();
-			} catch (StopException e) {}
-			catch(SyntaxError e){
-				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+				if (controller != null ) //ugly
+					controller.consoleOut("CITRIN DOESNT RECOGNIZE THIS STATEMENT: " + token.value+" at line: " +lexer.getLineNum()+'\n');
+				else
+					System.out.println("CITRIN DOESNT RECOGNIZE THIS STATEMENT: " + token.value+" at line: " +lexer.getLineNum()+'\n');
 				syntaxGood = false;
 			}
-			break;
-		case RETURN: // return from function call 
-			syntaxGood = syntaxGood && check_func_ret();
-			break;
-		case IF: // process an if statement 
-			syntaxGood = syntaxGood && check_if();
-			break;
-		/*case ELSE: // process an else statement 
-			find_eob(); // find end of else block and continue execution 
-			break;*/
-		case WHILE: // process a while loop 
-			syntaxGood = syntaxGood && check_while();
-			break;
-		case DO: // process a do-while loop 
-			syntaxGood = syntaxGood && check_do();
-			break;
-		default:
-			if(token.key != keyword.FINISHED){
-				controller.consoleOut("CITRIN DOESNT RECOGNIZE THIS STATEMENT: " + token.value+" at line: " +lexer.getLineNum()+'\n');
-				syntaxGood = false;
-			}
-		}
-		else{
-			controller.consoleOut("CITRIN DOESNT RECOGNIZE THIS STATEMENT: " + token.value+" at line: " +lexer.getLineNum()+'\n');
-			syntaxGood = false;
-		}
 
-	} while (token.key != keyword.FINISHED && block!=0);
+		} while (token.key != keyword.FINISHED && block!=0);
 
-	return syntaxGood;
+		return syntaxGood;
 
-}
-
-
-//TODO add int a(5) declaration option
-private void decl_var() throws StopException, SyntaxError{
-	token = lexer.get_token(); /* get type */
-	keyword type = token.key;
-	var_type value;
-
-	do { /* process comma-separated list */
-		var_type i = new var_type();
-		i.v_type = type;
-		i.value = 0; /* init to 0 should remove this*/
-		token = lexer.get_token(); /* get var name */
-		SymbolLocation loc = new SymbolLocation(lexer.getLineNum(),lexer.getColumnNum());
-		i.var_name = new String(token.value);
-		i.lvalue = true;
-		
-		//check for array
-		token = lexer.get_token();
-		if(token.value.equals("[")){
-			lexer.putback();
-			decl_arr(i,loc);	
-			token = lexer.get_token();
-			continue;
-		}
-		else{
-			lexer.putback();
-		}
-		
-		//check for initialize
-		token = lexer.get_token();
-		if(token.value.equals("=")){ //initialize
-			value = evalOrCheckExpression(true);
-			if(!checkOnly){
-				i.assignVal(value);
-			}
-		}
-		else{
-			lexer.putback();
-		}
-
-		//push var onto stack
-		SymbolDiagnosis d = symbolTable.pushSymbol(new Symbol(loc, i));
-		if(d == SymbolDiagnosis.Conflict){
-			SymbolLocation conflictLocation = symbolTable.findVar(i.var_name).location;
-			sntx_err("Variable name \""+i.var_name+"\" conflicts with previous declaration at line " + 
-			conflictLocation.lnum + " of \"" + i.var_name + "\"");
-		}
-		if(!checkOnly)
-			printVarVal(i);
-
-		token = lexer.get_token();
-	} while( token.value.charAt(0) == ',');
-	if(token.value.charAt(0) != ';'){
-		sntx_err("Semicolon expected");
-		lexer.putback();
 	}
-}
 
+	//TODO add int a(5) declaration option
+	private void decl_var() throws StopException, SyntaxError{
+		token = lexer.get_token(); /* get type */
+		keyword type = token.key;
+		var_type value;
+
+		do { /* process comma-separated list */
+			var_type i = new var_type();
+			i.v_type = type;
+			i.value = 0; /* init to 0 should remove this*/
+			token = lexer.get_token(); /* get var name */
+			SymbolLocation loc = new SymbolLocation(lexer.getLineNum(),lexer.getColumnNum());
+			i.var_name = new String(token.value);
+			i.lvalue = true;
+			
+			//check for array
+			token = lexer.get_token();
+			if(token.value.equals("[")){
+				lexer.putback();
+				decl_arr(i,loc);	
+				token = lexer.get_token();
+				continue;
+			}
+			else{
+				lexer.putback();
+			}
+			
+			//check for initialize
+			token = lexer.get_token();
+			if(token.value.equals("=")){ //initialize
+				value = evalOrCheckExpression(true);
+				if(!checkOnly){
+					i.assignVal(value);
+				}
+			}
+			else{
+				lexer.putback();
+			}
+
+			//push var onto stack
+			SymbolDiagnosis d = symbolTable.pushSymbol(new Symbol(loc, i));
+			if(d == SymbolDiagnosis.Conflict){
+				SymbolLocation conflictLocation = symbolTable.findVar(i.var_name).location;
+				sntx_err("Variable name \""+i.var_name+"\" conflicts with previous declaration at line " + 
+				conflictLocation.lnum + " of \"" + i.var_name + "\"");
+			}
+			if(!checkOnly)
+				printVarVal(i);
+
+			token = lexer.get_token();
+		} while( token.value.charAt(0) == ',');
+		if(token.value.charAt(0) != ';'){
+			sntx_err("Semicolon expected");
+			lexer.putback();
+		}
+	}
 
 	void decl_arr(var_type var, SymbolLocation loc) throws SyntaxError, StopException{
 		token = lexer.get_token();
@@ -522,7 +704,6 @@ private void decl_var() throws StopException, SyntaxError{
 		
 	}
 
-
 	void exec_while() throws StopException, SyntaxError{
 		var_type cond;
 		int cond_index;
@@ -560,7 +741,10 @@ private void decl_var() throws StopException, SyntaxError{
 		try {
 			evalOrCheckExpression(false); //evaluate the conditional statement
 		} catch (SyntaxError e) {
-			controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			if (controller != null ) //ugly
+				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			else
+				System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 			syntaxGood = false;
 			findEndOfStatement();
 		} catch (StopException e) {	} 
@@ -626,7 +810,10 @@ private void decl_var() throws StopException, SyntaxError{
 		try {
 			evalOrCheckExpression(false); //evaluate the conditional statement
 		} catch (SyntaxError e) {
-			controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			if (controller != null ) //ugly
+				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			else
+				System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 			syntaxGood = false;
 			findEndOfStatement();
 		} catch (StopException e) {	} 
@@ -642,7 +829,10 @@ private void decl_var() throws StopException, SyntaxError{
 					lexer.putback();
 				}
 			} catch (SyntaxError e) {
-				controller.consoleOut(e.toString()+"at line: "+e.getLine()+'\n');
+				if (controller != null ) //ugly
+					controller.consoleOut(e.toString()+"at line: "+e.getLine()+'\n');
+				else
+					System.out.println(e.toString()+"at line: "+e.getLine()+'\n');
 				syntaxGood = false;
 		}
 
@@ -654,61 +844,69 @@ private void decl_var() throws StopException, SyntaxError{
 		try {
 			token = lexer.get_token();
 		} catch (SyntaxError e) {
-			controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			if (controller != null ) //ugly
+				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			else
+				System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 		}
 	}while(!token.value.equals(";") && !token.value.equals("}") && !token.value.equals("{") && token.type!=token_type.FINISHED);
 	if(token.value.equals("}")||token.value.equals("{"))
 		lexer.putback();
 }
 
-void exec_do() throws StopException, SyntaxError{
-		var_type cond;
-		return_state r;
-		int do_index;
+	void exec_do() throws StopException, SyntaxError{
+			var_type cond;
+			return_state r;
+			int do_index;
 
-		lexer.putback(); // go back to top of loop
-		do_index = lexer.index; //save top of loop location
-		token = lexer.get_token(); // read in "do" token again
-		r = interp_block(block_type.CONDITIONAL,false); //interpret loop
-		if(r == return_state.FUNC_RETURN)
-			return;
+			lexer.putback(); // go back to top of loop
+			do_index = lexer.index; //save top of loop location
+			token = lexer.get_token(); // read in "do" token again
+			r = interp_block(block_type.CONDITIONAL,false); //interpret loop
+			if(r == return_state.FUNC_RETURN)
+				return;
 
-		token = lexer.get_token();
-		if(token.key!=keyword.WHILE) sntx_err("while expected to end do block");
+			token = lexer.get_token();
+			if(token.key!=keyword.WHILE) sntx_err("while expected to end do block");
 
-		cond = evalOrCheckExpression(false); //evaluate the conditional statement
+			cond = evalOrCheckExpression(false); //evaluate the conditional statement
 
-		if(cond.value.doubleValue()!=0)  // if any bit is not 0
-			lexer.index = do_index; //loop back
-}
+			if(cond.value.doubleValue()!=0)  // if any bit is not 0
+				lexer.index = do_index; //loop back
+	}
 
-boolean check_do() {
-	boolean syntaxGood = true;
+	boolean check_do() {
+		boolean syntaxGood = true;
 
-	syntaxGood = syntaxGood && check_block();
+		syntaxGood = syntaxGood && check_block();
 
-	try {
-		evalOrCheckExpression(false); //evaluate the conditional statement
-	} catch (SyntaxError e) {
-		controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
-		syntaxGood = false;
-		findEndOfStatement();
-	} catch (StopException e) {	} 
+		try {
+			evalOrCheckExpression(false); //evaluate the conditional statement
+		} catch (SyntaxError e) {
+			if (controller != null ) //ugly
+				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			else
+				System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
+			syntaxGood = false;
+			findEndOfStatement();
+		} catch (StopException e) {	} 
 
-	try {
-		token = lexer.get_token();
-		if(token.key!=keyword.WHILE) 
-			sntx_err("while expected to end do block");
-		evalOrCheckExpression(false);
-	} catch (SyntaxError e) {
-		controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
-		syntaxGood = false;
-	} catch (StopException e) {}
+		try {
+			token = lexer.get_token();
+			if(token.key!=keyword.WHILE) 
+				sntx_err("while expected to end do block");
+			evalOrCheckExpression(false);
+		} catch (SyntaxError e) {
+			if (controller != null ) //ugly
+				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			else
+				System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
+			syntaxGood = false;
+		} catch (StopException e) {}
 
 
-		return syntaxGood;
-}
-
+			return syntaxGood;
+	}
 
 	void find_eob() throws SyntaxError{
 		int brace_count = 1;
@@ -758,7 +956,10 @@ boolean check_do() {
 			try {
 			token = lexer.get_token();
 		} catch (SyntaxError e) {
-			controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			if (controller != null ) //ugly
+				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			else
+				System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 			syntaxGood = false;
 		}
 			//this token is var type or function type?
@@ -769,7 +970,10 @@ boolean check_do() {
 				try {
 				token = lexer.get_token();
 			} catch (SyntaxError e) {
-				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+				if (controller != null ) //ugly
+					controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+				else
+					System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 				syntaxGood = false;
 			}
 				if(token.type == token_type.IDENTIFIER) {
@@ -777,7 +981,10 @@ boolean check_do() {
 					try {
 					token = lexer.get_token();
 				} catch (SyntaxError e) {
-					controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+					if (controller != null ) //ugly
+						controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+					else
+						System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 					syntaxGood = false;
 				}
 					if(token.value.charAt(0) != '(') { //must be a global var
@@ -785,7 +992,10 @@ boolean check_do() {
 						try {
 						decl_var();
 					} catch (SyntaxError e) {
-						controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+						if (controller != null ) //ugly
+							controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+						else
+							System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 						syntaxGood = false;
 					} catch (StopException e) { }
 					}
@@ -799,7 +1009,10 @@ boolean check_do() {
 						func_index++; 
 						// now at opening curly brace of function
 						} catch (SyntaxError e) {
-							controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+							if (controller != null ) //ugly
+								controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+							else
+								System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 							syntaxGood = false;
 							findEndOfStatement();
 						}
@@ -809,7 +1022,10 @@ boolean check_do() {
 								sntx_err("There must be a { before the openening statement to a function "+token.value);
 							lexer.putback();
 						} catch (SyntaxError e) {
-							controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+							if (controller != null ) //ugly
+								controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+							else
+								System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 							syntaxGood = false;
 						}
 						symbolTable.pushFuncScope(func_table[func_index-1].func_name);
@@ -828,8 +1044,11 @@ boolean check_do() {
 					}
 				}
 			}
-			else if(token.key!=keyword.FINISHED) controller.consoleOut("Unkown data type or command: "
-			+token.value+" at line: "+lexer.getLineNum()+'\n');
+			else if(token.key!=keyword.FINISHED) 
+				if (controller != null ) //ugly
+					controller.consoleOut("Unkown data type or command: " +token.value+" at line: "+lexer.getLineNum()+'\n');
+				else
+					System.out.println("Unkown data type or command: " +token.value+" at line: "+lexer.getLineNum()+'\n');
 		} while(token.key!=keyword.FINISHED);
 		lexer.index = oldIndex;
 		checkOnly = false;
@@ -939,8 +1158,6 @@ boolean check_do() {
 		return v;
 	}
 
-
-
 	var_type checkCall(String func_name) throws StopException, SyntaxError{
 		ret_value = null;
 		ArrayList<var_type> args;
@@ -975,8 +1192,6 @@ boolean check_do() {
 			symbolTable.pushSymbol(new Symbol(loc, v));
 		}  
 	}
-
-
 
 	// get arguments from function call
 	ArrayList<var_type> get_args() throws StopException, SyntaxError{
@@ -1033,7 +1248,6 @@ boolean check_do() {
 		return params;
 	}
 
-
 	//return from a function. sets ret_value to the returned value
 	void func_ret() throws StopException, SyntaxError{
 		var_type value = null;
@@ -1062,7 +1276,11 @@ boolean check_do() {
 					sntx_err("Expected ;");
 		}
 		} catch (SyntaxError e) {
-			controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+
+			if (controller != null ) //ugly
+				controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
+			else
+				System.out.println(e.toString()+" at line: "+e.getLine()+'\n');
 			syntaxGood = false;
 			findEndOfStatement();
 		} catch (StopException e) {}
@@ -1081,7 +1299,6 @@ boolean check_do() {
 		return false;		
 
 	}
-
 
 	ArrayList<Integer> find_func_indexes(String name,  ArrayList<var_type> args){
 		ArrayList<Integer> indexes = new ArrayList<Integer>();
