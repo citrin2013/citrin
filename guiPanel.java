@@ -68,6 +68,8 @@ public class guiPanel extends JPanel	implements ActionListener {
 	private JMenuItem redo;
 	private JButton pasteButton;
 
+	private DataDisplay tabbedPane3;
+
 
 //	private JTextArea area;
 
@@ -194,9 +196,12 @@ public class guiPanel extends JPanel	implements ActionListener {
 		action.putValue(Action.NAME, "Underline");
 		styleMenu.add(action);*/
 
+		// -------------------------------------------------------------------
+		// 3 main gui components of citrin
 		JTabbedPane program = new JTabbedPane();
 		JTabbedPane tabbedPane2 = new JTabbedPane();
-		JTabbedPane tabbedPane3 = new JTabbedPane();
+		// JTabbedPane tabbedPane3 = new JTabbedPane();
+		tabbedPane3 = new DataDisplay(new Dimension(100,100) );
 
 		area2.setColumns(30);
 		area2.setRows(10);
@@ -233,8 +238,8 @@ public class guiPanel extends JPanel	implements ActionListener {
 
 		//tabbedPane2.add("copy.gif", new ImageIcon("copy.gif"), 0);
 
-		//tabbedPane3.addTab("States", null);
-		tabbedPane3.add("States", scrollPane3);
+		// tabbedPane3.addTab("States", null);
+		// tabbedPane3.add("States", scrollPane3);
 
 		fileMenu.add(new OpenAction(editor));
 		fileMenu.addSeparator();
@@ -301,7 +306,7 @@ public class guiPanel extends JPanel	implements ActionListener {
 		JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane3, tabbedPane2);
 
 		splitPane2.setOneTouchExpandable(true);
-		splitPane2.setDividerLocation(200);
+		splitPane2.setDividerLocation(400);
 
 		// JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, splitPane2);
 		JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, program, splitPane2);
@@ -332,7 +337,6 @@ public class guiPanel extends JPanel	implements ActionListener {
 		controller = new Controller(console);	
 
 	}
-
 
 	private static void createAndShowGUI(){
 		// Create the container	
@@ -638,9 +642,11 @@ public class guiPanel extends JPanel	implements ActionListener {
 			// TODO: hmmmm is this the best way
 			synchronized(controller){
 				if(!controller.isInterpreting()){
+					SymbolTableNotifier stab = new SymbolTableNotifier(); 
+					stab.addObserver( tabbedPane3 );
 					controller.clearConsole();
 					controller.setInterpretingStart();
-					new Thread(i = new Interpreter(controller,currentCppSourceFile,-1)).start();
+					new Thread(i = new Interpreter(controller,currentCppSourceFile,-1, stab)).start();
 					controller.addInterpreter(i);
 				}
 				else{
@@ -649,7 +655,6 @@ public class guiPanel extends JPanel	implements ActionListener {
 			}
 		}
 	}
-
 
 	// An action that runs the interpreter on all the contents of the current cpp source file
 class RunAllActionButton extends AbstractAction {
@@ -667,10 +672,12 @@ class RunAllActionButton extends AbstractAction {
 		// Start interpreter in new thread
 		// TODO: hmmmm is this the best way
 		synchronized(controller){
+			SymbolTableNotifier stab = new SymbolTableNotifier(); 
+			stab.addObserver( tabbedPane3 );
 			if(!controller.isInterpreting()){
 				controller.clearConsole();
 				controller.setInterpretingStart();
-				new Thread(i = new Interpreter(controller,currentCppSourceFile,-1)).start();
+				new Thread(i = new Interpreter(controller,currentCppSourceFile,-1, stab)).start();
 				controller.addInterpreter(i);
 			}
 			else{
@@ -680,7 +687,6 @@ class RunAllActionButton extends AbstractAction {
 	}
 
 }
-
 
 	class StepAction extends AbstractAction {
 		JTextComponent display;
@@ -697,10 +703,12 @@ class RunAllActionButton extends AbstractAction {
 
 			Interpreter i;
 			synchronized(controller){
+				SymbolTableNotifier stab = new SymbolTableNotifier(); 
+				stab.addObserver( tabbedPane3 );
 				if(!controller.isInterpreting()){
 					controller.clearConsole();
 					controller.setInterpretingStart();
-					new Thread(i = new Interpreter(controller,currentCppSourceFile,1)).start();
+					new Thread(i = new Interpreter(controller,currentCppSourceFile,1, stab)).start();
 					controller.addInterpreter(i);
 				}
 				else{
@@ -725,10 +733,12 @@ class RunAllActionButton extends AbstractAction {
 
 			//Start interpreter in new thread
 			synchronized(controller){
+				SymbolTableNotifier stab = new SymbolTableNotifier(); 
+				stab.addObserver( tabbedPane3 );
 				if(!controller.isInterpreting()){
 					controller.clearConsole();
 					controller.setInterpretingStart();
-					new Thread(i=new Interpreter(controller, currentCppSourceFile,1)).start();
+					new Thread(i=new Interpreter(controller, currentCppSourceFile,1, stab)).start();
 					controller.addInterpreter(i);
 				}
 				else{
@@ -737,7 +747,6 @@ class RunAllActionButton extends AbstractAction {
 			}
 		}
 	}
-
 
 	class RunToBreakpointAction extends AbstractAction {
 		JTextComponent display;
@@ -757,9 +766,11 @@ class RunAllActionButton extends AbstractAction {
 			input = input-1;
 			Interpreter i;
 			synchronized(controller){
+					SymbolTableNotifier stab = new SymbolTableNotifier(); 
+					stab.addObserver( tabbedPane3 );
 					controller.clearConsole();
 					controller.setInterpretingStart();
-					new Thread(i = new Interpreter(controller,currentCppSourceFile,1)).start();
+					new Thread(i = new Interpreter(controller,currentCppSourceFile,1, stab)).start();
 					controller.addInterpreter(i);
 					controller.addSteps(input);
 			}
