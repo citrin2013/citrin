@@ -287,7 +287,7 @@ public class Lexer {
 			return (token);
 			}
 
-		if( ";'()".indexOf(prog[index])>=0 ){ /* delimiter */
+		if( ";'()[]".indexOf(prog[index])>=0 ){ /* delimiter */
 			token.value = Character.toString(prog[index]);
 			index++;
 			token.type = token_type.DELIMITER;
@@ -472,9 +472,8 @@ public class Lexer {
 		while(n<listOfEndlines.size() && listOfEndlines.get(n)<=index){
 			n++;
 		}
-		n--; //to get n before index
 
-		return n+2; //return +1 since start at line 1, and +1 since previous endline is on the line before index
+		return n+1; //return +1 since start at line 1
 	}
 
 	public synchronized int getColumnNum(){
@@ -482,9 +481,12 @@ public class Lexer {
 		while(n<listOfEndlines.size() && listOfEndlines.get(n)<=index){
 			n++;
 		}
-		n--;
-
-		return index-listOfEndlines.get(n);
+		
+		if(n==0)
+			return index;
+		else
+			return index-listOfEndlines.get(n-1);
+		
 
 	}
 

@@ -9,13 +9,24 @@ public class var_type{
 	public Number value;
 	public boolean lvalue;
 	public String scope; //TODO: currently unused, will require more thought
-	public var_type memberOf = null; //TODO:
+	public Symbol memberOf = null; //TODO:
 	public int address = -1;
+	public boolean constant;
+	
+	//array data
+	public var_type array_type;
+	public ArrayList<Integer> bounds;
+	public ArrayList<Symbol> data;
 
 	var_type(){
 		var_name = null;
 		v_type = null;
 		lvalue = false;
+		address = -1;
+		array_type = null;
+		constant = false;
+		memberOf = null;
+		data = null;
 	}
 	var_type(var_type rhs){
 		if(rhs.var_name != null){
@@ -24,11 +35,21 @@ public class var_type{
 		v_type = rhs.v_type;
 		value = rhs.value;
 		lvalue = rhs.lvalue;
+		address = rhs.address;
+		array_type = rhs.array_type;
+		bounds = rhs.bounds;
+		constant = rhs.constant;
+		memberOf = rhs.memberOf;
+		data = rhs.data;
 	}
 
 	//TODO: THIS FUNCTION WONT WORK WITH CLASSES
 	public static keyword getPromotionForBinaryOp(keyword type1, keyword type2) throws SyntaxError {
-		if(type1 == keyword.DOUBLE || type2 == keyword.DOUBLE)
+		if(type1 == keyword.ARRAY || type2 == keyword.ARRAY){
+			sntx_err("Math operations on pointers have not been implemented");
+			return null;
+		}
+		else if(type1 == keyword.DOUBLE || type2 == keyword.DOUBLE)
 			return keyword.DOUBLE;
 		else if(type1 == keyword.FLOAT || type2 == keyword.FLOAT)
 			return keyword.FLOAT;
@@ -48,8 +69,8 @@ public class var_type{
 
 	public var_type add(var_type rhs) throws SyntaxError{
 		var_type v = new var_type();
+		keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 		if(isNumber() && rhs.isNumber()){
-			keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 
 			if(returnType == keyword.DOUBLE){
 				v.v_type = keyword.DOUBLE;
@@ -65,14 +86,15 @@ public class var_type{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant && rhs.constant;
 		return v;
 	}
 
 
 public var_type sub(var_type rhs) throws SyntaxError{
 		var_type v = new var_type();
+		keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 		if(isNumber() && rhs.isNumber()){
-			keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 			if(returnType == keyword.DOUBLE){
 				v.v_type = keyword.DOUBLE;
 				v.value = value.doubleValue()-rhs.value.doubleValue();
@@ -87,13 +109,14 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant && rhs.constant;
 		return v;
 	}
 
 	public var_type mul(var_type rhs) throws SyntaxError{
 		var_type v = new var_type();
+		keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 		if(isNumber() && rhs.isNumber()){
-			keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 			if(returnType == keyword.DOUBLE){
 				v.v_type = keyword.DOUBLE;
 				v.value = value.doubleValue()*rhs.value.doubleValue();
@@ -108,13 +131,14 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant && rhs.constant;
 		return v;
 	}
 
 	public var_type div(var_type rhs) throws SyntaxError{
 		var_type v = new var_type();
+		keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 		if(isNumber() && rhs.isNumber()){
-			keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 			if(rhs.value.doubleValue()==0)
 				run_err("divide by 0");
 			else if(returnType == keyword.DOUBLE){
@@ -131,13 +155,14 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant && rhs.constant;
 		return v;
 	}
 
 	public var_type mod(var_type rhs) throws SyntaxError{
 		var_type v = new var_type();
+		keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 		if(isNumber() && rhs.isNumber()){
-			keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 			if(returnType == keyword.DOUBLE || returnType == keyword.FLOAT){
 				sntx_err("mod uses integral types only");
 			}
@@ -149,14 +174,15 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant && rhs.constant;
 		return v;
 	}
 
 
 	public var_type bitBinaryOp(String op, var_type rhs) throws SyntaxError{
 		var_type v = new var_type();
+		keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 		if(isNumber() && rhs.isNumber()){
-			keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 			if(returnType == keyword.DOUBLE || returnType == keyword.FLOAT){
 				sntx_err("Bitwise operator " + op + " cannot take floating point types");
 			}
@@ -175,13 +201,14 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant && rhs.constant;
 		return v;
 	}
 
 	public var_type relationalOperator(var_type rhs, String op) throws SyntaxError{
 		var_type v = new var_type();
+		keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 		if(isNumber() && rhs.isNumber()){
-			keyword returnType = getPromotionForBinaryOp(v_type, rhs.v_type);
 			if(returnType == keyword.DOUBLE || returnType == keyword.FLOAT){
 				v.v_type = keyword.BOOL;
 				double val1 = value.doubleValue();
@@ -233,11 +260,16 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant && rhs.constant;
 		return v;
 	}
 
-	public var_type unaryMinus(){
+	public var_type unaryMinus() throws SyntaxError{
 		var_type v = new var_type();
+		if(v_type==keyword.ARRAY){
+			sntx_err("Math operations on pointers have not been implemented");
+		}
+		
 		if(isNumber()){
 			if(v_type == keyword.DOUBLE){
 				v.v_type = keyword.DOUBLE;
@@ -249,39 +281,49 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant;
 		return v;
 	}
 
-	public var_type unaryPlus(){
+	public var_type unaryPlus() throws SyntaxError{
 		var_type v = new var_type();
+		
+		if(v_type==keyword.ARRAY){
+			sntx_err("Math operations on pointers have not been implemented");
+		}
+		
 		if(isNumber()){
 			v = new var_type(this);
 		}
 		v.lvalue = false;
+		v.constant = constant;
 		return v;
 	}
 
 
-	void assignVal(var_type rhs){
+	void assignVal(var_type rhs) throws SyntaxError{
 		if(v_type == keyword.INT) value = rhs.value.intValue();
-		if(v_type == keyword.SHORT) value = rhs.value.shortValue();			
-		if(v_type == keyword.CHAR) value = (rhs.value.intValue()%256+256)%256;
-		if(v_type == keyword.BOOL){
+		else if(v_type == keyword.SHORT) value = rhs.value.shortValue();			
+		else if(v_type == keyword.CHAR) value = (rhs.value.intValue()%256+256)%256;
+		else if(v_type == keyword.BOOL){
 			if(rhs.v_type == keyword.FLOAT || rhs.v_type == keyword.DOUBLE)
 				value = (rhs.value.doubleValue() == 0)? 0: 1;
 			else if(rhs.v_type == keyword.INT || rhs.v_type == keyword.SHORT || 
 					rhs.v_type == keyword.CHAR || rhs.v_type == keyword.BOOL)
 				value = (rhs.value.intValue() == 0)? 0: 1;
 		}
-		if(v_type == keyword.FLOAT) value = rhs.value.floatValue();
-		if(v_type == keyword.DOUBLE) value = rhs.value.doubleValue();
+		else if(v_type == keyword.FLOAT) value = rhs.value.floatValue();
+		else if(v_type == keyword.DOUBLE) value = rhs.value.doubleValue();
+		else if(v_type==keyword.ARRAY){
+			sntx_err("ISO C++ forbids assignments to arrays");
+		}
 	}
 
 	var_type suffixIncrement() throws SyntaxError{
-		var_type result = new var_type();
-		result.v_type = this.v_type;
-		result.value = this.value;
-		result.var_name = this.var_name;
+		if(v_type==keyword.ARRAY){
+			sntx_err("ISO C++ forbids assignments to arrays");
+		}
+		var_type result = new var_type(this);
 		var_type v1 = new var_type();
 		v1.v_type = keyword.INT;
 		v1.value = 1;
@@ -291,10 +333,10 @@ public var_type sub(var_type rhs) throws SyntaxError{
 	}
 
 	var_type suffixDecrement() throws SyntaxError{
-		var_type result = new var_type();
-		result.v_type = this.v_type;
-		result.value = this.value;
-		result.var_name = this.var_name;
+		if(v_type==keyword.ARRAY){
+			sntx_err("ISO C++ forbids assignments to arrays");
+		}
+		var_type result = new var_type(this);
 		var_type v1 = new var_type();
 		v1.v_type = keyword.INT;
 		v1.value = 1;
@@ -305,6 +347,9 @@ public var_type sub(var_type rhs) throws SyntaxError{
 
 	//TODO: rewrite this without using a shortcut
 	var_type prefixIncrement() throws SyntaxError{
+		if(v_type==keyword.ARRAY){
+			sntx_err("ISO C++ forbids assignments to arrays");
+		}
 		var_type v1 = new var_type();
 		v1.v_type = keyword.INT;
 		v1.value = 1;
@@ -314,6 +359,9 @@ public var_type sub(var_type rhs) throws SyntaxError{
 	}
 
 	var_type prefixDecrement() throws SyntaxError{
+		if(v_type==keyword.ARRAY){
+			sntx_err("ISO C++ forbids assignments to arrays");
+		}
 		var_type v1 = new var_type();
 		v1.v_type = keyword.INT;
 		v1.value = 1;
@@ -332,12 +380,18 @@ public var_type sub(var_type rhs) throws SyntaxError{
 				v.value = 0;
 		}
 		v.lvalue = false;
+		v.constant = constant;
 		return v;
 	}
 
 
 	var_type bitwiseNot() throws SyntaxError{
 		var_type v = new var_type();
+		
+		if(v_type==keyword.ARRAY){
+			sntx_err("Math operations on pointers have not been implemented");
+		}
+		
 		if(isNumber()){
 			if(v_type == keyword.INT || v_type == keyword.SHORT || v_type == keyword.CHAR || v_type == keyword.BOOL ){
 				v.v_type = keyword.INT;
@@ -348,30 +402,42 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			}
 		}
 		v.lvalue = false;
+		v.constant = constant;
 		return v;
 	}
 
 	boolean isNumber(){
 		return (v_type == keyword.INT || v_type == keyword.FLOAT || v_type == keyword.DOUBLE || 
-				v_type == keyword.CHAR || v_type == keyword.BOOL);
+				v_type == keyword.CHAR || v_type == keyword.BOOL );
 	}
 
 	boolean canConvertTo(keyword type){
 		//TODO temp function... needs to be changed if classes are added
+		if(v_type == keyword.ARRAY)
+			return false;
 		return true;
 	}
 
 	boolean canAssign(var_type v2){
 		//TODO only works on primitive types for now
+		if(v_type == keyword.ARRAY)
+			return false;
 		return true;
 	}
 
 	boolean canEvalOp(String op, var_type rhs){
 		//TODO only works on primitive types for now
+		if(v_type == keyword.ARRAY)
+			return false;
 		return true;
 	}
+	
 	var_type getReturnTypeFromBinaryOp(String op, var_type rhs) throws SyntaxError{
 		var_type v = new var_type();
+		
+		if(v_type == keyword.ARRAY){
+			sntx_err("Math operations on pointers have not been implemented");
+		}
 
 		if(v_type==keyword.DOUBLE || rhs.v_type==keyword.DOUBLE){
 			v.v_type = keyword.DOUBLE;
@@ -390,6 +456,7 @@ public var_type sub(var_type rhs) throws SyntaxError{
 		if( (op.equals(">>") || op.equals("<<")) && (v.v_type==keyword.DOUBLE && v.v_type==keyword.FLOAT) )
 			sntx_err("Binary operator "+op+" cannot take floating point types");
 
+		v.constant = constant && rhs.constant;
 		return v;
 	}
 
@@ -397,6 +464,10 @@ public var_type sub(var_type rhs) throws SyntaxError{
 		if(v_type == keyword.NONPRIMITIVE)
 			sntx_err("unary ops not defined on classes");
 
+		if(v_type == keyword.ARRAY){
+			sntx_err("Math operations on pointers have not been implemented");
+		}
+		
 		var_type v = new var_type();
 
 		if(op.equals("!")){
@@ -417,6 +488,27 @@ public var_type sub(var_type rhs) throws SyntaxError{
 		return v;
 	}
 
+	
+	public String getDisplayVal(){
+		if(v_type == keyword.SHORT || v_type == keyword.INT)
+			return ""+value.intValue();
+		else if(v_type == keyword.FLOAT || v_type == keyword.DOUBLE)
+			return ""+value.doubleValue();
+		else if(v_type == keyword.CHAR)
+			return ""+(char)value.intValue();
+		else if(v_type == keyword.BOOL)
+			return value.intValue()==1? "true" : "false";
+		else if(v_type == keyword.ARRAY && bounds.size() == 1){
+			String str = "{" + data.get(0).data.getDisplayVal();
+			for(int i=1;i<bounds.get(0);i++){
+				str = str+", "+data.get(i).data.getDisplayVal();
+			}
+			str = str + "}";
+			return str;
+		}
+		return null;
+		
+	}
 
 	public static void sntx_err(String s) throws SyntaxError {
 		throw new SyntaxError(s,-1,-1);

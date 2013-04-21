@@ -18,7 +18,7 @@ public class Interpreter implements Runnable {
 	//private final int NUM_COMMANDS = 14;
 	private int numStepsToRun = 0;
 
-	public SymbolTable symbolTable;
+	public SymbolTableNotifier symbolTable;
 	private Controller controller;
 	private String CppSrcFile;
 	private boolean StopRun = false;
@@ -45,7 +45,7 @@ public class Interpreter implements Runnable {
 
 		}
 
-	public Interpreter(Controller c, String s, int numSteps, SymbolTable stab)
+	public Interpreter(Controller c, String s, int numSteps, SymbolTableNotifier stab)
 	{
 		controller = c;
 		CppSrcFile = s;
@@ -57,7 +57,7 @@ public class Interpreter implements Runnable {
 		controller = c;
 		CppSrcFile = s;
 		numStepsToRun = numSteps;
-		symbolTable = new SymbolTable();
+		symbolTable = new SymbolTableNotifier();
 		
 	}
 
@@ -102,14 +102,14 @@ public class Interpreter implements Runnable {
 		} /* find the location of all functions and global variables in the program */
 
 		if(!isUserFunc("main")){
-			controller.consoleOut("Syntax Error: main() not found");
+			controller.consoleOut("Syntax Error: main() not found\n");
 			return interpretation;
 		}
 		ArrayList<var_type> args = new ArrayList<var_type>();
 		try {
 			index = find_func("main", args);
 		} catch (SyntaxError e1) {
-			controller.consoleOut("Syntax Error: main() not found"+'\n');
+			controller.consoleOut("Syntax Error: main() not found\n");
 			return interpretation;
 		} //set up call to main		
 		lexer.index = func_table[index].location;
@@ -123,6 +123,7 @@ public class Interpreter implements Runnable {
 			controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
 		}
 		symbolTable.popScope();
+		symbolTable.clear();
 
 		return interpretation;
 	}
@@ -267,16 +268,17 @@ public class Interpreter implements Runnable {
 
 
 void printVarVal(var_type v){
-	String message = "";
-	if(v.v_type == keyword.INT || v.v_type == keyword.SHORT || v.v_type == keyword.BOOL )
-		message += ( v.var_name + " = " + v.value.intValue() + "\n");
-	else if(v.v_type == keyword.CHAR)
-		message += ( v.var_name + " = " + (char)(v.value.intValue()) + "\n");			
-	else if(v.v_type == keyword.FLOAT || v.v_type  == keyword.DOUBLE)
-		message += ( v.var_name + " = " + v.value.doubleValue() + "\n");
+	var_type val = v;
+	while(val.memberOf!=null){
+		val = val.memberOf.data;
+	}
 
-	controller.consoleOut(message);
-
+	String message = val.getDisplayVal();
+	if(message!=null)
+		controller.consoleOut(val.var_name+" = "+val.getDisplayVal()+'\n');
+	else
+		controller.consoleOut("Updated "+val.var_name+'\n');
+	
 }
 
 
@@ -413,7 +415,20 @@ private void decl_var() throws StopException, SyntaxError{
 		token = lexer.get_token(); /* get var name */
 		SymbolLocation loc = new SymbolLocation(lexer.getLineNum(),lexer.getColumnNum());
 		i.var_name = new String(token.value);
-
+		i.lvalue = true;
+		
+		//check for array
+		token = lexer.get_token();
+		if(token.value.equals("[")){
+			lexer.putback();
+			decl_arr(i,loc);	
+			token = lexer.get_token();
+			continue;
+		}
+		else{
+			lexer.putback();
+		}
+		
 		//check for initialize
 		token = lexer.get_token();
 		if(token.value.equals("=")){ //initialize
@@ -445,6 +460,68 @@ private void decl_var() throws StopException, SyntaxError{
 }
 
 
+	void decl_arr(var_type var, SymbolLocation loc) throws SyntaxError, StopException{
+		token = lexer.get_token();
+		ArrayList<Integer> bounds = new ArrayList<Integer>();
+		while(token.value.equals("[")){
+			token = lexer.get_token();
+			int size;
+			if(token.value.equals("]")){
+				size = -1;
+				if(bounds.size()!=0){
+					sntx_err("Declaration of "+var.var_name+" must have bounds for all dimensions except the first");
+				}
+			}
+			else{
+				lexer.putback();
+				var_type val;
+				val = evalOrCheckExpression(false);
+				if(!val.isNumber() || val.v_type == keyword.DOUBLE || val.v_type == keyword.FLOAT){
+					sntx_err("Size of array must be an integral type");
+				}
+				if(!val.constant){
+					sntx_err("Array size cannot be variable");
+				}
+				size = val.value.intValue();
+				token = lexer.get_token();
+				if(!token.value.equals("]")){
+					sntx_err("Expecting ]");
+				}
+			}
+			bounds.add(size);
+
+			token = lexer.get_token();	
+		}
+		lexer.putback();
+		
+		var_type arr = new var_type();
+		arr.var_name = var.var_name;
+		arr.v_type = keyword.ARRAY;
+		arr.array_type = var;
+		arr.bounds = bounds;
+		
+		//check for initialize
+		//TODO;
+		int product = 1;
+		for(int i=0;i<bounds.size();i++){
+			product*=bounds.get(i);
+		}
+		
+		ArrayList<Symbol> arrayData = new ArrayList<Symbol>();
+		var.var_name = null;
+		Symbol arrSymbol = new Symbol(loc,arr);
+		var.memberOf = arrSymbol;
+		for(int i=0;i<product;i++){
+			var_type v = new var_type(var);
+			arrayData.add(new Symbol(loc,v));
+		}
+		arr.data = arrayData;
+		symbolTable.pushArray(arrSymbol, arrayData);
+		if(!checkOnly)
+			printVarVal(arr);
+		
+	}
+
 
 	void exec_while() throws StopException, SyntaxError{
 		var_type cond;
@@ -463,7 +540,15 @@ private void decl_var() throws StopException, SyntaxError{
 				return;
 		}
 		else{
-			find_eob(); //find the end of the loop
+			//find the end of the loop
+			token = lexer.get_token();
+			if(!token.value.equals("{")){
+				lexer.putback();
+				findEndOfStatement();
+			}
+			else{
+				find_eob();					
+			}
 			return;
 		}
 
@@ -497,8 +582,10 @@ private void decl_var() throws StopException, SyntaxError{
 
 			token = lexer.get_token();
 			if(token.key==keyword.ELSE){
+				//find the end of the else
 				token = lexer.get_token();
 				if(!token.value.equals("{")){
+					lexer.putback();
 					findEndOfStatement();
 				}
 				else{
@@ -510,7 +597,16 @@ private void decl_var() throws StopException, SyntaxError{
 			}
 		}
 		else{ //skip around block, check for else
-			find_eob(); //find the end of the loop
+
+			//find the end of the if
+			token = lexer.get_token();
+			if(!token.value.equals("{")){
+				lexer.putback();
+				findEndOfStatement();
+			}
+			else{
+				find_eob();					
+			}
 			token = lexer.get_token();
 
 			if(token.key != keyword.ELSE){
@@ -644,11 +740,15 @@ boolean check_do() {
 	private boolean prescan1()
 	{
 		checkOnly = true;
+
+		
 		boolean syntaxGood = true;
 		int oldIndex = lexer.index;
 		int tempIndex;
 		String temp;
 		keyword datatype;
+		SymbolTableNotifier tempSymbolTable = symbolTable;
+		symbolTable = new SymbolTableNotifier();
 		int tempNumStepsToRun = numStepsToRun;
 		numStepsToRun = -1;
 		func_index = 0;
@@ -734,6 +834,7 @@ boolean check_do() {
 		lexer.index = oldIndex;
 		checkOnly = false;
 		numStepsToRun = tempNumStepsToRun;
+		symbolTable = tempSymbolTable;
 		return syntaxGood;
 	}
 

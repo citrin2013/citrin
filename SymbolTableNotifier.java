@@ -40,6 +40,7 @@ enum SymbolTableEvent {
 	scopePopped,
 	symbolInserted,
 	symbolAssignedNewValue,
+	cleared
 };
 
 // ---------------------------------------------------------------------------
@@ -127,6 +128,12 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 		super.popScope();
 		notifyObservers(SymbolTableEvent.scopePopped);
 	}
+	
+	public void clear(){
+		super.clear();
+		notifyObservers(SymbolTableEvent.cleared);
+		
+	}
 
 	public SymbolDiagnosis pushSymbol(Symbol s){
 		insertedSymbol = s;
@@ -141,10 +148,27 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 		return insertedSymbolDiagnosis;
 	}
 
-	void assignVar(String varName, var_type value){
-		super.assignVar(varName, value);
-		assignedSymbol = findVar(varName);
+	public SymbolDiagnosis pushArray(Symbol arrSymbol, ArrayList<Symbol> arrayData){
+		insertedSymbol = arrSymbol;
+		insertedSymbolDiagnosis = super.pushArray(arrSymbol, arrayData);
+		notifyObservers( SymbolTableEvent.symbolInserted );
+		return insertedSymbolDiagnosis;
+	}
+	
+	Symbol assignVar(String varName, var_type value){
+		assignedSymbol = super.assignVar(varName, value);
 		assignedSymbolName = varName;
+		notifyObservers( SymbolTableEvent.symbolAssignedNewValue );
+		return assignedSymbol;
+	}
+	
+	// function to notify when a var is updated
+	void updatedVar(int address){
+		assignedSymbol = varStack.get(address);
+		while(assignedSymbol.data.memberOf!=null){
+			assignedSymbol = assignedSymbol.data.memberOf;
+		}
+		assignedSymbolName = assignedSymbol.data.var_name;
 		notifyObservers( SymbolTableEvent.symbolAssignedNewValue );
 	}
 
