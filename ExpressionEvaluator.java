@@ -90,6 +90,12 @@ public class ExpressionEvaluator {
 	  result.constant = false;
 	  
 	  if(checkOnly){
+		  if(result.v_type == keyword.ARRAY){
+			  interpreter.sntx_err("Arrays cannot be on the lefthand side of an assignment");
+		  }
+		  if(rhs.v_type == keyword.ARRAY){
+			  interpreter.sntx_err("Math operations have not been implemented on pointers yet");
+		  }
 		  switch(op.charAt(0)){
 		  case '%':
 		  case '<':
@@ -451,8 +457,7 @@ public class ExpressionEvaluator {
 		  
 		  boolean constant = result.constant && partial_value.constant;
 		  if(checkOnly && !constant){
-			  result = new var_type();
-			  result.v_type = keyword.BOOL;
+			  result = result.getReturnTypeFromBinaryOp(op, partial_value);
 		  }
 		  else{
 			  result = result.relationalOperator(partial_value, op);			  
@@ -479,7 +484,7 @@ public class ExpressionEvaluator {
 
 		  boolean constant = result.constant && partial_value.constant;
 		  if(checkOnly && !constant){
-			  result.v_type = keyword.BOOL;
+			  result = result.getReturnTypeFromBinaryOp(op, partial_value);
 		  }
 		  else{
 			  result = result.relationalOperator(partial_value, op);			  

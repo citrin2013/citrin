@@ -21,15 +21,21 @@ public class Controller {
 	}
 	
 	public synchronized void consoleOut(String message){
-		 interpretation+=message;
-		 final String messageCopy = new String(message);
-		 EventQueue.invokeLater(new Runnable() { 
-		   @Override
-		   public void run() {
-			    console.append(messageCopy);
-			    console.setCaretPosition(console.getDocument().getLength());
-		   }
-		 });
+		 if(console!=null){
+			 interpretation+=message;
+			 final String messageCopy = new String(message);
+			 EventQueue.invokeLater(new Runnable() { 
+				 @Override
+				 public void run() {
+					 console.append(messageCopy);
+					 console.setCaretPosition(console.getDocument().getLength());
+				 }
+			 });
+		 }
+		 else{
+			 System.out.println(message);
+		 }
+			 
 	}
 	
 	public synchronized boolean isInterpreting(){

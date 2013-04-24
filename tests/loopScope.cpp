@@ -1,6 +1,7 @@
 int main()
 {
-while(1) {
+int i=0;
+while(++i<5) {
 char a = 'a';
 }
 }

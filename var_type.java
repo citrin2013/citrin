@@ -439,6 +439,11 @@ public var_type sub(var_type rhs) throws SyntaxError{
 			sntx_err("Math operations on pointers have not been implemented");
 		}
 
+		if(op.equals(">") || op.equals("<") || op.equals("==") || op.equals(">=") || op.equals("<=") || op.equals("!=")){
+			v.v_type = keyword.BOOL;
+			return v;
+		}
+		
 		if(v_type==keyword.DOUBLE || rhs.v_type==keyword.DOUBLE){
 			v.v_type = keyword.DOUBLE;
 		}
