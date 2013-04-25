@@ -175,7 +175,7 @@ public class Interpreter implements Runnable {
 	public Interpreter(String s, int numSteps, SymbolTableNotifier stab)
 	{
 		// controller = c;
-		controller = new Controller(null);
+		controller = new Controller(null, null);
 		CppSrcFile = s;
 		numStepsToRun = numSteps;
 		this.symbolTable = stab;
@@ -290,6 +290,22 @@ public class Interpreter implements Runnable {
 		int a =1/0;
 	}
 
+	private void waitIfNeeded() throws StopException{
+		synchronized(this){
+			while(numStepsToRun==0 && !StopRun){
+				try{
+					wait();				
+				}
+				catch(InterruptedException e) {}
+			}
+			if(numStepsToRun>0){
+				numStepsToRun--;
+			}
+			if(StopRun) throw new StopException(0);
+		}
+	}
+	
+	
 	/* Interpret a single statement or block of code. When
 	 interp_block() returns from its initial call, the final
 	 brace (or a return) in main() has been encountered.
@@ -303,20 +319,10 @@ public class Interpreter implements Runnable {
 		first semicolon.*/
 		do {
 
-			synchronized(this){
-				while(numStepsToRun==0 && !StopRun){
-					try{
-						wait();				
-					}
-					catch(InterruptedException e) {}
-				}
-				if(numStepsToRun>0){
-					numStepsToRun--;
-				}
-				if(StopRun) throw new StopException(0);
-			}
+			waitIfNeeded();
 
 			token = lexer.get_token();
+			controller.setActiveLineOfCode(lexer.getLineNum());
 			
 			//TODO FIX SO CAN OPEN A NEW BLOCK
 			/* see what kind of token is up */
@@ -1139,6 +1145,7 @@ public class Interpreter implements Runnable {
 					}
 					else{ //must be a function
 						func_table[func_index] = new func_type();
+						func_table[func_index].decarationLineNum = lexer.getLineNum();
 						func_table[func_index].ret_type = datatype;
 						func_table[func_index].func_name = new String(temp);
 						func_table[func_index].params = get_params();
@@ -1176,6 +1183,7 @@ public class Interpreter implements Runnable {
 			temp = lexer.index; //save return location
 			symbolTable.pushFuncScope(func_name);
 			lexer.index = loc; //reset prog to start of function
+			controller.addActiveLineOfCode(func_table[func_index].decarationLineNum);
 			params = func_table[func_index].params; //get set of params
 			putParamsOnStack(args,params);
 			if(func_table[func_index].ret_type==keyword.VOID)
@@ -1185,6 +1193,8 @@ public class Interpreter implements Runnable {
 
 			lexer.index = temp; //reset the program index
 			symbolTable.popScope();
+			controller.removeLastHighlightAndSetFocus(lexer.getLineNum());
+
 		}
 
 		//TODO VOID FUNCTIONS!
@@ -1302,7 +1312,10 @@ public class Interpreter implements Runnable {
 		//TODO function should change return value to the correct type 
 		//TODO need to do something about void functions
 
-		ret_value = new var_type(value);	
+		ret_value = new var_type(value);
+		
+		//wait so that returns don't appear to be skipped while stepping
+		waitIfNeeded();
 	}
 
 	boolean check_func_ret(){
@@ -1489,6 +1502,7 @@ public class Interpreter implements Runnable {
 		public int location;
 		public ArrayList<var_type> params;//TODO 
 		public boolean overloaded;
+		public int decarationLineNum;
 	}
 
 }

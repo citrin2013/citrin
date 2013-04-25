@@ -5,6 +5,7 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -14,7 +15,10 @@ import java.io.*;
 import java.io.FileWriter.*;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Stack;
+
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
@@ -40,13 +44,17 @@ import javax.swing.JTextPane;
 import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import javax.swing.JToolTip;
+import javax.swing.JViewport;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditEvent;
 import javax.swing.event.UndoableEditListener;
 import javax.swing.text.*;
+import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
+import javax.swing.text.Highlighter.Highlight;
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoManager;
 
@@ -81,18 +89,25 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 //	private JTextArea area;
 	private UndoManager undoredo;
 	private Controller controller;
-
+	
+	private Highlighter.HighlightPainter green;
 	//TODO: need functionality to keep track of what action was just done
 
 	//Menu Items for Help
 	private JMenuItem tutorial;
 
+	private TextLineNumber tln;
+	
+	
+	// highlight history
+	private Stack<Object> highlightStack = new Stack<Object>();
 	
 	//constructor
 	public guiPanel(){
 
+		green = new DefaultHighlightPainter(Color.GREEN);
 		JMenuBar topBar = new JMenuBar(); //menu bar to hold the menus
-
+	
 		JMenu fileMenu = new JMenu("File");
 		JMenu editMenu = new JMenu("Edit");
 		//JMenu styleMenu = new JMenu("Style");
@@ -108,7 +123,10 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		jb_redo = new JButton(new ImageIcon("redo.png"));
 		//help menu
 		tutorial = new JMenuItem("Tutorial");
-
+		
+		
+		
+		
 		//add the menus to the menu bar
 		topBar.add(fileMenu);
 		topBar.add(editMenu);
@@ -205,7 +223,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		JScrollPane scrollPane = new JScrollPane(editor);
 		
 		//add line numbers to editor
-		TextLineNumber tln = new TextLineNumber(editor);
+		tln = new TextLineNumber(editor);
 		scrollPane.setRowHeaderView(tln);
 		
 		JScrollPane scrollPane2 = new JScrollPane(console);
@@ -320,13 +338,14 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 		//setLocation(0,0); //This line doesn't seem to be necessary.
 
-		controller = new Controller(console);	
+		controller = new Controller(console, this);	
 		editor.getDocument().addUndoableEditListener(this);
 		undo.addActionListener(this);
 		redo.addActionListener(this);
 		jb_undo.addActionListener(this);
 		jb_redo.addActionListener(this);
 		
+
 	}
 
 	private static void createAndShowGUI(){
@@ -355,6 +374,8 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 				System.exit(0);
 			}
 		});
+		
+		
 
 	}
 
@@ -382,8 +403,120 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		undoredo.addEdit(edit.getEdit());
 		
 	}
+	
+	//highlights one line
+	public void HighlightLine(int lineNumber){
+		int beginning = 0;
+		int end = 0;
+		try {
+			beginning = editor.getLineStartOffset(lineNumber-1);
+		} catch (BadLocationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		try {
+			end = editor.getLineEndOffset(lineNumber-1);
+		} catch (BadLocationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		try {
+			Object tag = editor.getHighlighter().addHighlight(beginning, end, green);
+			highlightStack.add(tag);
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	//highlights one line
+	public void HighlightSection(int index1, int index2){
+		int beginning = 0;
+		int end = 0;
+		beginning = index1;
+		end = index2;
+		try {
+			Object tag = editor.getHighlighter().addHighlight(beginning, end, green);
+			highlightStack.add(tag);
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public void clearHighlight(){
+		editor.getHighlighter().removeAllHighlights();
+		highlightStack.clear();
+	}
+	
+	public void clearMostRecentHighlight(){
+		if(highlightStack.size()>0){
+			editor.getHighlighter().removeHighlight(highlightStack.lastElement());
+			highlightStack.pop();
+		}
+	}
+	
+	public void centerOnLine(int lineNum){
+		int beginning;
+		try {
+			beginning = editor.getLineStartOffset(lineNum-1);
+			editor.setCaretPosition(beginning);
+			centerLineInScrollPane(editor);
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
+	}
+	
+	public void centerOnPosition(int position){
+		editor.setCaretPosition(position);
+		centerLineInScrollPane(editor);
+	}
+	
+	public static void centerLineInScrollPane(JTextComponent component)
+	{
+	    Container container = SwingUtilities.getAncestorOfClass(JViewport.class, component);
 
+	    if (container == null) return;
+
+	    try
+	    {
+	        Rectangle r = component.modelToView(component.getCaretPosition());
+	        JViewport viewport = (JViewport)container;
+
+	        int extentWidth = viewport.getExtentSize().width;
+	        int viewWidth = viewport.getViewSize().width;
+
+	        int x = Math.max(0, r.x - (extentWidth / 2));
+	        x = Math.min(x, viewWidth - extentWidth);
+
+	        int extentHeight = viewport.getExtentSize().height;
+	        int viewHeight = viewport.getViewSize().height;
+
+	        int y = Math.max(0, r.y - (extentHeight / 2));
+	        y = Math.min(y, viewHeight - extentHeight);
+
+	        viewport.setViewPosition(new Point(x, y));
+	    }
+	    catch(BadLocationException ble) {}
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if(e.getSource() == undo || e.getSource() == jb_undo){
+			if(undoredo.canUndo()){
+				undoredo.undo();
+			}		
+		}
+		else if(e.getSource() == redo || e.getSource() == jb_redo){
+			if(undoredo.canRedo()){
+			undoredo.redo();
+			}
+		}
+	}
 	/*
 	public void  saveFileAs() throws IOException	{
 			String saveFileName = JOptionPane.showInputDialog("Save File As");
@@ -836,17 +969,5 @@ class RunAllActionButton extends AbstractAction {
 
 	}
 	
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		if(e.getSource() == undo || e.getSource() == jb_undo){
-			if(undoredo.canUndo()){
-				undoredo.undo();
-			}		
-		}
-		else if(e.getSource() == redo || e.getSource() == jb_redo){
-			if(undoredo.canRedo()){
-			undoredo.redo();
-			}
-		}
-	}
+
 }
