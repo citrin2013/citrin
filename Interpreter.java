@@ -333,7 +333,6 @@ public class Interpreter implements Runnable {
 				}
 				else if(token.value.equals("{") && block!=0){
 					addSteps(1);
-					System.out.println(numStepsToRun);
 					lexer.putback();
 					symbolTable.pushLocalScope();
 					interp_block(block_type.CONDITIONAL,false);
@@ -677,7 +676,6 @@ public class Interpreter implements Runnable {
 			
 			if(bounds.get(0)==-1){
 				bounds.set(0, Math.max(initialize.size()/size,1));
-				System.out.println(bounds.get(0));
 			}
 			
 			size = 1;
@@ -685,7 +683,6 @@ public class Interpreter implements Runnable {
 				size*=bounds.get(i);
 			}
 			if(size<initialize.size()){
-				System.out.println(""+size+" "+initialize.size());
 				sntx_err("initializer list is too long for array "+arr.var_name);
 			}
 			
@@ -1055,14 +1052,17 @@ public class Interpreter implements Runnable {
 					}
 					else{ //must be a function
 						try {
-						func_table[func_index] = new func_type();
-						func_table[func_index].ret_type = datatype;
-						func_table[func_index].func_name = new String(temp);
-						func_table[func_index].params = get_params();
-						func_table[func_index].location = lexer.index;
 						func_index++; 
+						func_table[func_index-1] = new func_type();
+						func_table[func_index-1].ret_type = datatype;
+						func_table[func_index-1].func_name = new String(temp);
+						func_table[func_index-1].params = get_params();
+						func_table[func_index-1].location = lexer.index;
+	
 						// now at opening curly brace of function
 						} catch (SyntaxError e) {
+							if(func_table[func_index-1].params == null)
+								func_table[func_index-1].params = new ArrayList<var_type>();
 							controller.consoleOut(e.toString()+" at line: "+e.getLine()+'\n');
 							syntaxGood = false;
 							findEndOfStatement();
@@ -1079,21 +1079,23 @@ public class Interpreter implements Runnable {
 						symbolTable.pushFuncScope(func_table[func_index-1].func_name);
 							ArrayList<var_type> params = func_table[func_index-1].params; //get set of params
 							for(int i=0;i<params.size();i++){
-								var_type v = new var_type();
-								v.v_type = params.get(0).v_type;
-								v.var_name = params.get(0).var_name;
+								var_type v = new var_type(params.get(i));
 								SymbolLocation loc = new SymbolLocation(-1,-1);//TODO parameter, should do something
 								symbolTable.pushSymbol(new Symbol(loc, v));
 							}  
-
+							
 							syntaxGood = syntaxGood && check_block();					
 							symbolTable.popScope();
 
 					}
 				}
 			}
+			else if(token.value.equals("{")){
+				lexer.putback();
+				syntaxGood = syntaxGood && check_block();	
+			}
 			else if(token.key!=keyword.FINISHED) 
-				controller.consoleOut("Unkown data type or command: " +token.value+" at line: "+lexer.getLineNum()+'\n');
+				controller.consoleOut("Invalid syntax: " +token.value+" at line: "+lexer.getLineNum()+'\n');
 
 		} while(token.key!=keyword.FINISHED);
 		lexer.index = oldIndex;
@@ -1233,11 +1235,18 @@ public class Interpreter implements Runnable {
 			sntx_err("BAD MATCH, this is probably a bug in CITRIN");
 		}
 		for(int i=0;i<params.size();i++){
-			var_type v = new var_type();
-			v.v_type = params.get(0).v_type;
-			v.var_name = params.get(0).var_name;
-			v.assignVal(args.get(0));
-			printVarVal(v);
+			var_type v;
+			if(params.get(i).v_type == keyword.ARRAY){
+				v = new var_type(args.get(i));
+				v.var_name = params.get(i).var_name;
+			}
+			else{
+				v = new var_type();
+				v.v_type = params.get(i).v_type;
+				v.var_name = params.get(i).var_name;
+				v.assignVal(args.get(i));
+				printVarVal(v);				
+			}
 			SymbolLocation loc = new SymbolLocation(-1,-1);//TODO parameter, should do something
 			symbolTable.pushSymbol(new Symbol(loc, v));
 		}  
@@ -1287,6 +1296,25 @@ public class Interpreter implements Runnable {
 				 sntx_err("Identifier Expected");
 				}
 				p.var_name = token.value;
+				token = lexer.get_token();
+				
+				// if array
+				if(token.value.equals("[")){
+					lexer.putback();		
+					
+					var_type temp = new var_type(p);
+					p.array_type = temp;
+					p.v_type = keyword.ARRAY;
+
+					try {
+						p.bounds = getArrayBounds();
+					} catch (StopException e) {}
+				}
+				else{
+					lexer.putback();
+				}
+				
+				
 				params.add(p);
 
 				token = lexer.get_token();
@@ -1370,7 +1398,7 @@ public class Interpreter implements Runnable {
 			for(int k=0; k<args.size(); ++k){
 				var_type arg = args.get(k);
 				var_type param = func_table[indexes.get(j)].params.get(k);
-				if(!arg.canConvertTo(param.v_type)){
+				if(!arg.canConvertTo(param)){
 					indexes.remove(j);
 					j--;
 				}

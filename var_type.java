@@ -411,10 +411,29 @@ public var_type sub(var_type rhs) throws SyntaxError{
 				v_type == keyword.CHAR || v_type == keyword.BOOL );
 	}
 
-	boolean canConvertTo(keyword type){
+	boolean canConvertTo(var_type var){
 		//TODO temp function... needs to be changed if classes are added
-		if(v_type == keyword.ARRAY)
-			return false;
+		if(v_type == keyword.ARRAY){
+			if(var.v_type != keyword.ARRAY){
+				return false;
+			}
+			
+			if(array_type.v_type != var.array_type.v_type){
+				return false;
+			}
+			
+			if(bounds.size() != var.bounds.size()){
+				return false;
+			}
+
+			for(int i=1;i<bounds.size();i++){
+				if(bounds.get(i)!=var.bounds.get(i))
+					return false;
+			}
+			
+			return true;
+		}
+		
 		return true;
 	}
 
