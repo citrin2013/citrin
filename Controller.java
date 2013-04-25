@@ -84,7 +84,7 @@ public class Controller {
 	    	});
 	}
 	
-	public void setActiveSectionOfCode(int index1, int index2){
+	/*public void setActiveSectionOfCode(int index1, int index2){
 		final int i1 = index1, i2 = index2;
 		if(guiPanel!=null){
 			SwingUtilities.invokeLater(new Runnable(){
@@ -96,7 +96,7 @@ public class Controller {
 				}
 			});
 		}
-	}
+	}*/
 	
 	public void setActiveLineOfCode(int lineNum){
 		final int line = lineNum;

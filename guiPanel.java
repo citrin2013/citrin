@@ -430,22 +430,6 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		}
 	}
 	
-	//highlights one line
-	public void HighlightSection(int index1, int index2){
-		int beginning = 0;
-		int end = 0;
-		beginning = index1;
-		end = index2;
-		try {
-			Object tag = editor.getHighlighter().addHighlight(beginning, end, green);
-			highlightStack.add(tag);
-		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
-	
 	public void clearHighlight(){
 		editor.getHighlighter().removeAllHighlights();
 		highlightStack.clear();
@@ -471,19 +455,13 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 	}
 	
-	public void centerOnPosition(int position){
-		editor.setCaretPosition(position);
-		centerLineInScrollPane(editor);
-	}
 	
 	public static void centerLineInScrollPane(JTextComponent component)
 	{
 	    Container container = SwingUtilities.getAncestorOfClass(JViewport.class, component);
-
 	    if (container == null) return;
 
-	    try
-	    {
+	    try{
 	        Rectangle r = component.modelToView(component.getCaretPosition());
 	        JViewport viewport = (JViewport)container;
 
