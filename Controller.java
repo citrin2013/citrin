@@ -1,3 +1,4 @@
+import java.awt.Color;
 import java.awt.EventQueue;
 
 import javax.swing.SwingUtilities;
@@ -98,27 +99,44 @@ public class Controller {
 		}
 	}*/
 	
-	public void setActiveLineOfCode(int lineNum){
+	public void setActiveLineOfCode(int lineNum, final Color color){
 		final int line = lineNum;
 		if(guiPanel!=null){
 			SwingUtilities.invokeLater(new Runnable(){
 				@Override 
 				public void run() {
 					guiPanel.clearMostRecentHighlight();
-					guiPanel.HighlightLine(line);
+					guiPanel.HighlightLine(line, color);
 					guiPanel.centerOnLine(line);
 				}
 			});
 		}
 	}
 	
-	public void addActiveLineOfCode(int lineNum){
+	public void highlightConditional(final int lineNum, final boolean isTrue){
 		final int line = lineNum;
 		if(guiPanel!=null){
 			SwingUtilities.invokeLater(new Runnable(){
 				@Override 
 				public void run() {
-					guiPanel.HighlightLine(line);
+					guiPanel.clearMostRecentHighlight();
+					if(isTrue==true)
+						guiPanel.HighlightLine(line, Color.GREEN);
+					else
+						guiPanel.HighlightLine(line, Color.RED);
+					guiPanel.centerOnLine(line);
+				}
+			});
+		}
+	}
+	
+	public void addActiveLineOfCode(int lineNum, final Color color){
+		final int line = lineNum;
+		if(guiPanel!=null){
+			SwingUtilities.invokeLater(new Runnable(){
+				@Override 
+				public void run() {
+					guiPanel.HighlightLine(line, color);
 					guiPanel.centerOnLine(line);
 				}
 			});

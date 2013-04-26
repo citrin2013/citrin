@@ -90,7 +90,6 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 	private UndoManager undoredo;
 	private Controller controller;
 	
-	private Highlighter.HighlightPainter green;
 	//TODO: need functionality to keep track of what action was just done
 
 	//Menu Items for Help
@@ -105,7 +104,6 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 	//constructor
 	public guiPanel(){
 
-		green = new DefaultHighlightPainter(Color.GREEN);
 		JMenuBar topBar = new JMenuBar(); //menu bar to hold the menus
 	
 		JMenu fileMenu = new JMenu("File");
@@ -230,6 +228,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 		JScrollPane scrollPane3 = new JScrollPane(area3);
 
+		JScrollPane scrollPane4 =  new JScrollPane(tabbedPane3);
 		//tabbedPane.addTab("Program", null);
 		program.add("Program", scrollPane);
 	//	program.setName("*Program");
@@ -307,7 +306,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		editToolBar.add(stopRunButton);
 		
 
-		JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabbedPane3, tabbedPane2);
+		JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane4, tabbedPane2);
 
 		splitPane2.setOneTouchExpandable(true);
 		splitPane2.setDividerLocation(400);
@@ -405,7 +404,8 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 	}
 	
 	//highlights one line
-	public void HighlightLine(int lineNumber){
+	public void HighlightLine(int lineNumber, Color c){
+		DefaultHighlightPainter color = new DefaultHighlightPainter(c);
 		int beginning = 0;
 		int end = 0;
 		try {
@@ -422,7 +422,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		}
 		
 		try {
-			Object tag = editor.getHighlighter().addHighlight(beginning, end, green);
+			Object tag = editor.getHighlighter().addHighlight(beginning, end, color);
 			highlightStack.add(tag);
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block

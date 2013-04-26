@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -75,7 +76,15 @@ public class Interpreter implements Runnable {
 	private final int NUM_FUNC = 100;
 	private func_type func_table[] = new func_type[NUM_FUNC];
 	private int func_index = 0; // index into function table/
-
+	private int lastLineNum=-1;
+	
+	
+	private Color normalHighlightColor = new Color(0,255,240,200);
+	private Color trueHightlightColor = new Color(0,255,0,200);
+	private Color falseHightlightColor = new Color(255,0,0,200);	
+	
+	private Color statementColor = normalHighlightColor;
+	
 	// static private String interpretation = ""; // why static?
 	private String interpretation = ""; // why static?
 	Lexer lexer = null;
@@ -255,6 +264,7 @@ public class Interpreter implements Runnable {
 
 		//TODO: need special call main
 		try {
+			lastLineNum = lexer.getLineNum();
 			interp_block(block_type.FUNCTION, true);
 		} catch (StopException e) {
 		} catch (SyntaxError e) {
@@ -291,7 +301,9 @@ public class Interpreter implements Runnable {
 	}
 
 	private void waitIfNeeded() throws StopException{
+		
 		synchronized(this){
+			
 			while(numStepsToRun==0 && !StopRun){
 				try{
 					wait();				
@@ -319,10 +331,12 @@ public class Interpreter implements Runnable {
 		first semicolon.*/
 		do {
 
+			controller.setActiveLineOfCode(lastLineNum, statementColor);
 			waitIfNeeded();
-
+			statementColor = normalHighlightColor;
+			
 			token = lexer.get_token();
-			controller.setActiveLineOfCode(lexer.getLineNum());
+			lastLineNum = lexer.getLineNum();
 			
 			//TODO FIX SO CAN OPEN A NEW BLOCK
 			/* see what kind of token is up */
@@ -359,6 +373,9 @@ public class Interpreter implements Runnable {
 			token = lexer.get_token();
 
 			if(token.value.charAt(0)!=';') sntx_err("Expecting semi colon");
+			
+			
+			
 			}
 			else if(token.value.equals(";")){
 				// empty statement do nothing
@@ -780,6 +797,7 @@ public class Interpreter implements Runnable {
 		cond = evalOrCheckExpression(false); //evaluate the conditional statement
 
 		if(cond.value.doubleValue()!=0){	// if any bit is not 0
+			statementColor = trueHightlightColor;
 			symbolTable.pushLocalScope();
 			r =interp_block(block_type.CONDITIONAL, false);  // execute loop
 			symbolTable.popScope();
@@ -787,6 +805,7 @@ public class Interpreter implements Runnable {
 				return;
 		}
 		else{
+			statementColor = falseHightlightColor;
 			//find the end of the loop
 			token = lexer.get_token();
 			if(!token.value.equals("{")){
@@ -824,8 +843,9 @@ public class Interpreter implements Runnable {
 		var_type cond;
 		return_state r;
 		cond = evalOrCheckExpression(false); //evaluate the conditional statement
-
+		
 		if(cond.value.doubleValue()!=0){	// if any bit is not 0
+			statementColor = trueHightlightColor;
 			symbolTable.pushLocalScope();
 			r = interp_block(block_type.CONDITIONAL, false);	// execute block
 			symbolTable.popScope();
@@ -849,7 +869,7 @@ public class Interpreter implements Runnable {
 			}
 		}
 		else{ //skip around block, check for else
-
+			statementColor = falseHightlightColor;
 			//find the end of the if
 			token = lexer.get_token();
 			if(!token.value.equals("{")){
@@ -973,9 +993,6 @@ public class Interpreter implements Runnable {
 
 	void find_eob() throws SyntaxError{
 		int brace_count = 1;
-
-		//TODO check this, next line isn't needed
-		token = lexer.get_token();
 
 		do{
 			token = lexer.get_token();
@@ -1185,7 +1202,10 @@ public class Interpreter implements Runnable {
 			temp = lexer.index; //save return location
 			symbolTable.pushFuncScope(func_name);
 			lexer.index = loc; //reset prog to start of function
-			controller.addActiveLineOfCode(func_table[func_index].decarationLineNum);
+			int tempLastLine = lastLineNum;
+			controller.setActiveLineOfCode(lastLineNum, statementColor);
+			lastLineNum = func_table[func_index].decarationLineNum;
+			controller.addActiveLineOfCode(lastLineNum, statementColor);
 			params = func_table[func_index].params; //get set of params
 			putParamsOnStack(args,params);
 			if(func_table[func_index].ret_type==keyword.VOID)
@@ -1194,6 +1214,7 @@ public class Interpreter implements Runnable {
 				interp_block(block_type.FUNCTION,true); //run the function
 
 			lexer.index = temp; //reset the program index
+			lastLineNum = tempLastLine;
 			symbolTable.popScope();
 			controller.removeLastHighlightAndSetFocus(lexer.getLineNum());
 
@@ -1343,6 +1364,7 @@ public class Interpreter implements Runnable {
 		ret_value = new var_type(value);
 		
 		//wait so that returns don't appear to be skipped while stepping
+		controller.setActiveLineOfCode(lastLineNum, statementColor);
 		waitIfNeeded();
 	}
 
