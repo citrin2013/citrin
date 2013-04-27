@@ -250,6 +250,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		runMenu.add(new RunAllAction("RunAll", console)); 
 		runMenu.add(new StepAction("RunStep", console));
 		runMenu.add(new RunNumOfStepsAction(console));
+		runMenu.add(new RunBreakPoint(console));
 
 		JButton open = new JButton(new OpenAction("", editor));
 		open.setToolTipText("Open");
@@ -927,7 +928,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 					controller.addInterpreter(i);
 				}
 				else{
-					controller.runToBreak();
+					controller.continueRun();
 				}
 			}
 		}
@@ -998,6 +999,39 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 		}
 
+	}
+	
+	
+	class RunBreakPoint extends AbstractAction {
+		JTextComponent display;
+		String interpretation = "";
+
+		public RunBreakPoint(JTextComponent display) {
+			super("Run to Breakpoint");
+			this.display = display;
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+		// run interpreter on currentCppSourceFile
+		save(editor, true);
+		JOptionPane dialog = new JOptionPane();
+		int input = Integer.parseInt(dialog.showInputDialog("Run to which line"));
+		Interpreter i;
+			synchronized(controller){
+				if(!controller.isInterpreting()){
+					SymbolTableNotifier stab = new SymbolTableNotifier(); 
+					stab.addObserver( tabbedPane3 );
+					controller.clearConsole();
+					controller.setInterpretingStart();
+					new Thread(i = new Interpreter(controller,currentCppSourceFile,-1, stab, input)).start();
+					controller.addInterpreter(i);
+				}
+				else{
+					controller.runToBreak(input);
+				}
+			}
+		}
 	}
 	
 	class StopRunAction extends AbstractAction {

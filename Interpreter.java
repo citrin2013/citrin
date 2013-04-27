@@ -60,7 +60,7 @@ public class Interpreter implements Runnable {
 
 	//private final int NUM_COMMANDS = 14;
 	private int numStepsToRun = 0;
-
+	private int breakPoint = -2;
 	public SymbolTableNotifier symbolTable; // TODO Should be SymbolTable but could be too late now.
 	private Controller controller;
 	private String CppSrcFile;
@@ -205,7 +205,15 @@ public class Interpreter implements Runnable {
 		numStepsToRun = numSteps;
 		symbolTable = new SymbolTableNotifier();
 	}
-
+	
+	public Interpreter(Controller c, String s, int numSteps, SymbolTableNotifier stab, int breakLine)
+	{
+		controller = c;
+		CppSrcFile = s;
+		numStepsToRun = numSteps;
+		this.symbolTable = stab;
+		breakPoint = breakLine;
+	}
 	// -----------------------------------------------------------------------
 	// Interpreter
 
@@ -303,6 +311,10 @@ public class Interpreter implements Runnable {
 	private void waitIfNeeded() throws StopException{
 		
 		synchronized(this){
+			if(breakPoint > 0 && lastLineNum<=breakPoint && lexer.getLineNum()>breakPoint){
+				breakPoint = -1;
+				numStepsToRun=0;
+			}
 			
 			while(numStepsToRun==0 && !StopRun){
 				try{
@@ -332,10 +344,10 @@ public class Interpreter implements Runnable {
 		do {
 
 			controller.setActiveLineOfCode(lastLineNum, statementColor);
-			waitIfNeeded();
 			statementColor = normalHighlightColor;
 			
 			token = lexer.get_token();
+			waitIfNeeded();
 			lastLineNum = lexer.getLineNum();
 			
 			//TODO FIX SO CAN OPEN A NEW BLOCK
@@ -1532,11 +1544,17 @@ public class Interpreter implements Runnable {
 		notifyAll();
 	}
 
-	public synchronized void runToBreak(){
+	public synchronized void continueRun(){
 		numStepsToRun = -1;
 		notifyAll();
 	}
 
+	public synchronized void runToBreak(int line){
+		breakPoint = line;
+		numStepsToRun = -1;
+		notifyAll();
+	}
+	
 	public class commands {
 		public commands(String c, keyword t){
 			command = c;

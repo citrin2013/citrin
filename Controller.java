@@ -160,8 +160,12 @@ public class Controller {
 		interpreter.addSteps(s);
 	}
 	
-	public void runToBreak(){
-		interpreter.runToBreak();
+	public void continueRun(){
+		interpreter.continueRun();
+	}
+	
+	public void runToBreak(int line){
+		interpreter.runToBreak(line);
 	}
 	
 	public synchronized void stopInterpreter(){
