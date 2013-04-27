@@ -58,7 +58,7 @@ import javax.swing.text.Highlighter.Highlight;
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoManager;
 
-public class guiPanel extends JPanel	implements ActionListener, UndoableEditListener {
+public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 	// C++ source file this application has the focus on currently
 	// When tab focus changes this variable should refer to the file the tab contains
@@ -114,11 +114,10 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		currentCppSourceFile = null;
 		
 		//menu items for "Edit"
-		redo = new JMenuItem("Redo");
-		undo = new JMenuItem("Undo");
+
 		undoredo = new UndoManager();
-		jb_undo = new JButton(new ImageIcon("undo.png"));
-		jb_redo = new JButton(new ImageIcon("redo.png"));
+
+		
 		//help menu
 		tutorial = new JMenuItem("Tutorial");
 		
@@ -148,8 +147,8 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 		//add edit buttons to menu
 		// TODO: get undo/redo working, need undomanager and listner; look at swing.undo
-		editMenu.add(undo);
-		editMenu.add(redo);
+		editMenu.add(new UndoAction("Undo"));
+		editMenu.add(new RedoAction("Redo"));
 		editMenu.addSeparator();
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.cutAction));
 		editMenu.add(area.getActionMap().get(DefaultEditorKit.copyAction));
@@ -266,6 +265,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		//button to stop the interpreter
 		Action stopAction = new StopRunAction();
 		JButton stopRunButton = new JButton(stopAction);
+		stopRunButton.setToolTipText("Terminate");
 		
 		//button for runAll
 		Action runAllAction = new RunAllAction("", console);
@@ -293,7 +293,21 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 ;
 		save.setToolTipText("Save (Ctrl+S)");
 
-
+		Action undoAction = new UndoAction("");
+		undoAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control Z"));
+		jb_undo = new JButton(undoAction);
+		jb_undo.getActionMap().put("undo", undoAction);
+		jb_undo.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put((KeyStroke) undoAction.getValue(Action.ACCELERATOR_KEY), "undo")
+;
+		jb_undo.setToolTipText("Undo (Ctrl+Z)");
+		
+		Action redoAction = new RedoAction("");
+		redoAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control Y"));
+		jb_redo = new JButton(redoAction);
+		jb_redo.getActionMap().put("redo", redoAction);
+		jb_redo.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put((KeyStroke) redoAction.getValue(Action.ACCELERATOR_KEY), "redo")
+;
+		jb_redo.setToolTipText("Redo (Ctrl+Y)");
 		editToolBar.add(open);
 		editToolBar.add(cut);
 		editToolBar.add(copy);
@@ -339,10 +353,10 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 		controller = new Controller(console, this);	
 		editor.getDocument().addUndoableEditListener(this);
-		undo.addActionListener(this);
-		redo.addActionListener(this);
-		jb_undo.addActionListener(this);
-		jb_redo.addActionListener(this);
+		//undo.addActionListener(this);
+		//redo.addActionListener(this);
+		//jb_undo.addActionListener(this);
+		//jb_redo.addActionListener(this);
 		
 
 		runMenu.add(new RunTimed("RunTimed", console));
@@ -558,8 +572,8 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 	    catch(BadLocationException ble) {}
 	}
 	
-	@Override
-	public void actionPerformed(ActionEvent e) {
+//	@Override
+/*	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == undo || e.getSource() == jb_undo){
 			if(undoredo.canUndo()){
 				undoredo.undo();
@@ -570,7 +584,44 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 			undoredo.redo();
 			}
 		}
+	}*/
+	
+	class UndoAction extends AbstractAction{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public UndoAction(String label){
+			super(label, new ImageIcon("undo.png"));
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			// TODO Auto-generated method stub
+			undoredo.undo();
+		}
+		
 	}
+	
+	class RedoAction extends AbstractAction{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public RedoAction(String label){
+			super(label, new ImageIcon("redo.png"));
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			// TODO Auto-generated method stub
+			undoredo.redo();
+		}
+		
+	}
+	
 	/*
 	public void  saveFileAs() throws IOException	{
 			String saveFileName = JOptionPane.showInputDialog("Save File As");
