@@ -345,6 +345,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		jb_redo.addActionListener(this);
 		
 
+		runMenu.add(new RunTimed("RunTimed", console));
 	}
 
 	private static void createAndShowGUI(){
@@ -397,6 +398,81 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 	}
 	
+	class RunTimed  extends AbstractAction{
+		JTextComponent display;
+		String interpretation = "";
+		long now;
+		long mTimeElapsed = System.currentTimeMillis();
+		public RunTimed(String label, JTextComponent display) {
+			super("RunTimed", new ImageIcon("RunAll.gif"));
+			this.display = display;
+		}
+		
+		@Override
+		public void actionPerformed(ActionEvent e) {
+					  runstep s = new runstep();
+					  Thread thr = new Thread(s);
+
+				  thr.start();	
+				  
+			}
+				
+		}
+		
+	
+	
+	class runstep implements Runnable{
+
+		public void run(long time) {
+			// TODO Auto-generated method stub
+			Interpreter i;
+			boolean firstRun = false;
+			do{
+			try {
+				
+				Thread.sleep(time);
+	
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		
+			synchronized(controller) {
+				SymbolTableNotifier stab = new SymbolTableNotifier(); 
+				stab.addObserver( tabbedPane3 );
+	
+				if(!controller.isInterpreting() && !firstRun){
+					firstRun = true;
+					controller.clearConsole();
+					controller.setInterpretingStart();
+					new Thread(i = new Interpreter(controller,currentCppSourceFile,1, stab)).start();
+					controller.addInterpreter(i);
+
+				}
+				else {
+					if(controller.isInterpreting()){
+					controller.addSteps(1);
+					}
+
+				}
+			}
+			}while(controller.isInterpreting());
+			
+			Thread.currentThread().interrupt();	
+    	}
+		@Override
+		public void run() {
+			//String s = JOptionPane.showInputDialog("Enter number of seconds:");
+			//if(s.contains(".")){
+				
+			//}
+			
+			double time = Double.parseDouble(JOptionPane.showInputDialog("Enter number of seconds:"));
+			time = time*1000;
+			long s = (long) time;
+			run(s);
+		}
+	}
 	@Override
 	public void undoableEditHappened(UndoableEditEvent edit) {
 		undoredo.addEdit(edit.getEdit());
@@ -724,52 +800,6 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		}
 	}
 	
-	// An action that opens an existing file
-/*	class OpenActionButton extends AbstractAction {
-		JTextComponent textComponent;
-
-		// textComponent ... this action opens a file into this textComponent
-		public OpenActionButton(JTextComponent textComponent) {
-			super("", new ImageIcon("open.gif"));
-			this.textComponent = textComponent;
-		}
-
-		// Query user for a filename and attempt to open and read the file into
-		// the text component.
-		public void actionPerformed(ActionEvent ev) {
-			JFileChooser chooser = new JFileChooser();
-			if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION)
-			return;
-			File file = chooser.getSelectedFile();
-			if (file == null)
-			return;
-
-			FileReader reader = null;
-			try {
-				reader = new FileReader(file);
-				textComponent.read(reader, null);
-				currentCppSourceFile = file.getPath();
-			} catch (IOException ex) {
-				JOptionPane.showMessageDialog(null,
-				"File Not Found", "ERROR", JOptionPane.ERROR_MESSAGE);
-			} finally {
-				if (reader != null) {
-					try {
-						reader.close();
-					} catch (IOException x) {
-					}
-				}
-				//Set text component to focus
-				textComponent.requestFocus();
-				
-				//hack to update line numbers
-				textComponent.setCaretPosition(textComponent.getDocument().getLength());
-				textComponent.setCaretPosition(0);
-				textComponent.getDocument().addUndoableEditListener((UndoableEditListener) this);
-			}
-		}
-	}
-*/
 	// An action that runs the interpreter on all the contents of the current cpp source file
 	class RunAllAction extends AbstractAction {
 		JTextComponent display;
@@ -804,36 +834,6 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 	}
 
 	// An action that runs the interpreter on all the contents of the current cpp source file
-class RunAllActionButton extends AbstractAction {
-
-	String interpretation = "";	
-	 public RunAllActionButton(){
-		super("", new ImageIcon("runAll.gif"));
-	}
-
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		Interpreter i;
-		// run interpreter on currentCppSourceFile
-
-		// Start interpreter in new thread
-		// TODO: hmmmm is this the best way
-		synchronized(controller){
-			SymbolTableNotifier stab = new SymbolTableNotifier(); 
-			stab.addObserver( tabbedPane3 );
-			if(!controller.isInterpreting()){
-				controller.clearConsole();
-				controller.setInterpretingStart();
-				new Thread(i = new Interpreter(controller,currentCppSourceFile,-1, stab)).start();
-				controller.addInterpreter(i);
-			}
-			else{
-				controller.runToBreak();
-			}
-		}
-	}
-
-}
 
 	class StepAction extends AbstractAction {
 		JTextComponent display;
