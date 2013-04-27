@@ -203,7 +203,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		JTabbedPane program = new JTabbedPane();
 		JTabbedPane tabbedPane2 = new JTabbedPane();
 		// JTabbedPane tabbedPane3 = new JTabbedPane();
-		tabbedPane3 = new DataDisplay(new Dimension(100,100) );
+		tabbedPane3 = new DataDisplay(new Dimension(125,93) ); 
 
 		area2.setColumns(30);
 		area2.setRows(10);
@@ -1038,7 +1038,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 
 		public StopRunAction() {
-			super("", new ImageIcon("stop.gif"));
+			super("", new ImageIcon("Images/stop.png"));
 
 		}
 
