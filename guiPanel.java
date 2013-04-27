@@ -243,8 +243,8 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 		fileMenu.add(new OpenAction("Open", editor));
 		fileMenu.addSeparator();
-		fileMenu.add(new SaveAction("Save", editor));
-		fileMenu.add(new SaveAction("SaveAs", editor));
+		fileMenu.add(new SaveAction("Save", editor, true));
+		fileMenu.add(new SaveAction("SaveAs", editor, false));
 		fileMenu.addSeparator();
 		fileMenu.add(new ExitAction());
 
@@ -285,7 +285,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 ;
 		
 		//button for save
-		Action saveAction = new SaveAction("", editor);
+		Action saveAction = new SaveAction("", editor,true);
 		saveAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control S"));
 		JButton save = new JButton(saveAction);
 		save.getActionMap().put("save", saveAction);
@@ -680,19 +680,20 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 	}*/
 
-	// An action that saves the document to a file : Supports Save and SaveAs actoins 
+	// An action that saves the document to a file : Supports Save and SaveAs actions 
 	class SaveAction extends AbstractAction {
 		// PossibleBugSource : Saving to class member variable currentCppSourceFile
 
 				JTextComponent textComponent;
-				//boolean saveToCurrentFile;
+				boolean saveToCurrentFile;
 
 				// label				... label to show on the view
 				// textComponent		... the view and model that keeps and show the text data
 				// saveToCurrentFile	... false => prompts the user for the file, true => save to curent file
-				public SaveAction(String label, JTextComponent textComponent){//, boolean saveToCurrentFile) {
+				public SaveAction(String label, JTextComponent textComponent, boolean saveAs){//, boolean saveToCurrentFile) {
 					super(label, new ImageIcon("saved.gif"));
 					this.textComponent = textComponent;
+					saveToCurrentFile = saveAs;
 				//	this.saveToCurrentFile = saveToCurrentFile;
 					
 				}
@@ -709,7 +710,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 						return;
 					} 
 					else {*/
-						if(currentCppSourceFile != null){
+						if(currentCppSourceFile != null && saveToCurrentFile){
 							file = new File(currentCppSourceFile);
 						}
 						else{
@@ -804,7 +805,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 	class RunAllAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
-
+		
 		public RunAllAction(String label, JTextComponent display) {
 			super(label, new ImageIcon("RunAll.gif"));
 			this.display = display;
