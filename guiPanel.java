@@ -243,14 +243,14 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 		fileMenu.add(new OpenAction("Open", editor));
 		fileMenu.addSeparator();
-		fileMenu.add(new SaveAction("Save", editor));
-		fileMenu.add(new SaveAction("SaveAs", editor));
+		fileMenu.add(new SaveAction("Save", editor, true));
+		fileMenu.add(new SaveAction("SaveAs", editor, false));
 		fileMenu.addSeparator();
 		fileMenu.add(new ExitAction());
 
 		runMenu.add(new RunAllAction("RunAll", console)); 
 		runMenu.add(new StepAction("RunStep", console));
-		runMenu.add(new RunToBreakpointAction(console));
+		runMenu.add(new RunNumOfStepsAction(console));
 
 		JButton open = new JButton(new OpenAction("", editor));
 		open.setToolTipText("Open");
@@ -285,7 +285,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 ;
 		
 		//button for save
-		Action saveAction = new SaveAction("", editor);
+		Action saveAction = new SaveAction("", editor,true);
 		saveAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control S"));
 		JButton save = new JButton(saveAction);
 		save.getActionMap().put("save", saveAction);
@@ -410,10 +410,10 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		
 		@Override
 		public void actionPerformed(ActionEvent e) {
-					  runstep s = new runstep();
-					  Thread thr = new Thread(s);
-
-				  thr.start();	
+			save(editor, true);
+			runstep s = new runstep();
+			Thread thr = new Thread(s);
+      	    thr.start();	
 				  
 			}
 				
@@ -680,19 +680,20 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 	}*/
 
-	// An action that saves the document to a file : Supports Save and SaveAs actoins 
+	// An action that saves the document to a file : Supports Save and SaveAs actions 
 	class SaveAction extends AbstractAction {
 		// PossibleBugSource : Saving to class member variable currentCppSourceFile
 
 				JTextComponent textComponent;
-				//boolean saveToCurrentFile;
+				boolean saveToCurrentFile;
 
 				// label				... label to show on the view
 				// textComponent		... the view and model that keeps and show the text data
 				// saveToCurrentFile	... false => prompts the user for the file, true => save to curent file
-				public SaveAction(String label, JTextComponent textComponent){//, boolean saveToCurrentFile) {
+				public SaveAction(String label, JTextComponent textComponent, boolean saveAs){//, boolean saveToCurrentFile) {
 					super(label, new ImageIcon("saved.gif"));
 					this.textComponent = textComponent;
+					saveToCurrentFile = saveAs;
 				//	this.saveToCurrentFile = saveToCurrentFile;
 					
 				}
@@ -709,7 +710,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 						return;
 					} 
 					else {*/
-						if(currentCppSourceFile != null){
+						if(currentCppSourceFile != null && saveToCurrentFile){
 							file = new File(currentCppSourceFile);
 						}
 						else{
@@ -741,6 +742,52 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 				}
 	}
 
+
+	public void save(JTextComponent textComponent, boolean saveAs){//, boolean saveToCurrentFile) {
+
+
+		File file;
+	/*	if ( ! saveToCurrentFile ) {
+		JFileChooser chooser = new JFileChooser();
+		if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
+			return;
+		file = chooser.getSelectedFile();
+		if (file == null)
+			return;
+		} 
+		else {*/
+			if(currentCppSourceFile != null && saveAs){
+				file = new File(currentCppSourceFile);
+			}
+			else{
+				JFileChooser chooser = new JFileChooser();
+				if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
+					return;
+				file = chooser.getSelectedFile();
+				currentCppSourceFile = file.toString();
+				undoredo.discardAllEdits();
+				} 
+			//}
+	//	}
+
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(file);
+			textComponent.write(writer);
+		} catch (IOException ex) {
+		JOptionPane.showMessageDialog(null,
+			"File Not Saved", "ERROR", JOptionPane.ERROR_MESSAGE);
+		} finally {
+			if (writer != null) {
+				try {
+					writer.close();
+				} catch (IOException x) {
+				}
+			}
+	}
+}
+
+	
 	// An action that opens an existing file
 	public class OpenAction extends AbstractAction implements UndoableEditListener{
 		/**
@@ -804,7 +851,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 	class RunAllAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
-
+		
 		public RunAllAction(String label, JTextComponent display) {
 			super(label, new ImageIcon("RunAll.gif"));
 			this.display = display;
@@ -812,6 +859,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			save(editor, true);
 			Interpreter i;
 			// run interpreter on currentCppSourceFile
 
@@ -847,7 +895,7 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			// run interpreter on currentCppSourceFile
-
+			save(editor, true);
 			Interpreter i;
 			synchronized(controller){
 				SymbolTableNotifier stab = new SymbolTableNotifier(); 
@@ -867,47 +915,20 @@ public class guiPanel extends JPanel	implements ActionListener, UndoableEditList
 
 	}
 	
-	/*class StepActionButton extends AbstractAction {
-		String interpretation = "";
-		public StepActionButton(){
-			super("", new ImageIcon("step.gif"));
-		}
 
-		@Override
-		public void actionPerformed(ActionEvent e){
-			Interpreter i;
-			//run interpreter on currentCppSourceFile
-
-			//Start interpreter in new thread
-			synchronized(controller){
-				SymbolTableNotifier stab = new SymbolTableNotifier(); 
-				stab.addObserver( tabbedPane3 );
-				if(!controller.isInterpreting()){
-					controller.clearConsole();
-					controller.setInterpretingStart();
-					new Thread(i=new Interpreter(controller, currentCppSourceFile,1, stab)).start();
-					controller.addInterpreter(i);
-				}
-				else{
-					controller.addSteps(1);
-				}
-			}
-		}
-	}
-
-*/
-	class RunToBreakpointAction extends AbstractAction {
+	class RunNumOfStepsAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
 
-		public RunToBreakpointAction(JTextComponent display) {
-			super("Run to Breakpoint");
+		public RunNumOfStepsAction(JTextComponent display) {
+			super("Run Multiple Steps");
 			this.display = display;
 		}
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			// run interpreter on currentCppSourceFile
+			save(editor, true);
 			int steps;
 			JOptionPane dialog = new JOptionPane();
 			int input = Integer.parseInt(dialog.showInputDialog("Enter number of steps to run"));
