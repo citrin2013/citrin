@@ -442,15 +442,16 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 			Interpreter i;
 			boolean firstRun = false;
 			do{
-			try {
+				if(firstRun){
+					try {
 				
-				Thread.sleep(time);
+						Thread.sleep(time);
 	
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		
+					} catch (InterruptedException e) {
+						
+						e.printStackTrace();
+					}
+				}
 			synchronized(controller) {
 				SymbolTableNotifier stab = new SymbolTableNotifier(); 
 				stab.addObserver( tabbedPane3 );
