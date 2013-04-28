@@ -972,8 +972,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 			// run interpreter on currentCppSourceFile
 			save(editor, true);
 			int steps;
-			JOptionPane dialog = new JOptionPane();
-			int input = Integer.parseInt(dialog.showInputDialog("Enter number of steps to run"));
+			int input = Integer.parseInt(JOptionPane.showInputDialog("Enter number of steps to run"));
 			input = input-1;
 			synchronized(controller){
 					Interpreter i;
@@ -1005,8 +1004,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		public void actionPerformed(ActionEvent e) {
 		// run interpreter on currentCppSourceFile
 		save(editor, true);
-		JOptionPane dialog = new JOptionPane();
-		int input = Integer.parseInt(dialog.showInputDialog("Run to which line"));
+		int input = Integer.parseInt(JOptionPane.showInputDialog("Run to which line"));
 			synchronized(controller){
 				if(!controller.isInterpreting()){
 					resetCitrin(input);
