@@ -940,12 +940,13 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
+
 			// run interpreter on currentCppSourceFile
 			save(editor, true);
 			synchronized(controller){
 
 				if(!controller.isInterpreting()){
-					resetCitrin(null);
+					resetCitrin(1);
 				}
 				else{
 					controller.addSteps(1);
@@ -1040,18 +1041,23 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 	void resetCitrin(Integer breakPoint)
 	{
+
 		SymbolTableNotifier stab = new SymbolTableNotifier(); 
 		stab.addObserver( tabbedPane3 );
 		controller.clearConsole();
 		controller.setInterpretingStart();
-		Interpreter i = new Interpreter(controller,currentCppSourceFile,-1, stab);
+		Interpreter i = null;
+		if ( breakPoint != null )
+			i = new Interpreter(controller,currentCppSourceFile,breakPoint, stab);
+		else 
+			i = new Interpreter(controller,currentCppSourceFile,-1, stab);
+
 		controller.addInterpreter(i);
 
 		Thread t = new Thread(i);
 		CitrinInterrupter.getInstance().addThread(t);
 
 		t.start();
-
 
 		if (breakPoint!=null)
 			i.setBreakPoint(breakPoint);

@@ -214,6 +214,12 @@ public class Interpreter implements Runnable {
 		this.symbolTable = stab;
 		breakPoint = breakLine;
 	}
+
+	public void setBreakPoint(int breakPoint)
+	{
+		this.breakPoint = breakPoint;
+	}
+
 	// -----------------------------------------------------------------------
 	// Interpreter
 
