@@ -4,6 +4,8 @@ import java.util.List;
 
 public class var_type{
 
+	private CitrinInterrupter citrinInterrupter;
+
 	public String var_name;
 	public keyword v_type;
 	public Number value;
@@ -301,21 +303,30 @@ public var_type sub(var_type rhs) throws SyntaxError{
 	}
 
 
-	void assignVal(var_type rhs) throws SyntaxError{
-		if(v_type == keyword.INT) value = rhs.value.intValue();
-		else if(v_type == keyword.SHORT) value = rhs.value.shortValue();			
-		else if(v_type == keyword.CHAR) value = (rhs.value.intValue()%256+256)%256;
-		else if(v_type == keyword.BOOL){
-			if(rhs.v_type == keyword.FLOAT || rhs.v_type == keyword.DOUBLE)
-				value = (rhs.value.doubleValue() == 0)? 0: 1;
-			else if(rhs.v_type == keyword.INT || rhs.v_type == keyword.SHORT || 
-					rhs.v_type == keyword.CHAR || rhs.v_type == keyword.BOOL)
-				value = (rhs.value.intValue() == 0)? 0: 1;
-		}
-		else if(v_type == keyword.FLOAT) value = rhs.value.floatValue();
-		else if(v_type == keyword.DOUBLE) value = rhs.value.doubleValue();
-		else if(v_type==keyword.ARRAY){
-			sntx_err("ISO C++ forbids assignments to arrays");
+	void assignVal(var_type rhs) throws SyntaxError {
+		try {
+			if(v_type == keyword.INT) value = rhs.value.intValue();
+			else if(v_type == keyword.SHORT) value = rhs.value.shortValue();			
+			else if(v_type == keyword.CHAR) value = (rhs.value.intValue()%256+256)%256;
+			else if(v_type == keyword.BOOL){
+				if(rhs.v_type == keyword.FLOAT || rhs.v_type == keyword.DOUBLE)
+					value = (rhs.value.doubleValue() == 0)? 0: 1;
+				else if(rhs.v_type == keyword.INT || rhs.v_type == keyword.SHORT || 
+						rhs.v_type == keyword.CHAR || rhs.v_type == keyword.BOOL)
+					value = (rhs.value.intValue() == 0)? 0: 1;
+			}
+			else if(v_type == keyword.FLOAT) value = rhs.value.floatValue();
+			else if(v_type == keyword.DOUBLE) value = rhs.value.doubleValue();
+			else if(v_type==keyword.ARRAY){
+				sntx_err("ISO C++ forbids assignments to arrays");
+			}
+		} catch(Exception e) {
+			System.err.println("======================================>");	
+			System.err.println("Bug in assignVal()");	
+			System.err.println(e.toString());	
+			System.err.println("Trying to stop all the interpreters");	
+			System.err.println("<======================================");	
+			CitrinInterrupter.getInstance().interrupt();
 		}
 	}
 

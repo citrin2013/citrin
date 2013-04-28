@@ -405,11 +405,15 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 			System.err.println( e ); 
 		}
 
-		javax.swing.SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				createAndShowGUI();
-			}
-			});
+		try { 
+			javax.swing.SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					createAndShowGUI();
+				}
+				});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 	}
 	
@@ -440,7 +444,6 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 		public void run(long time) {
 			// TODO Auto-generated method stub
-			Interpreter i;
 			boolean firstRun = false;
 			do{
 				if(firstRun){
@@ -454,16 +457,10 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 					}
 				}
 			synchronized(controller) {
-				SymbolTableNotifier stab = new SymbolTableNotifier(); 
-				stab.addObserver( tabbedPane3 );
-	
 				if(!controller.isInterpreting() && !firstRun){
-					firstRun = true;
-					controller.clearConsole();
-					controller.setInterpretingStart();
-					new Thread(i = new Interpreter(controller,currentCppSourceFile,1, stab)).start();
-					controller.addInterpreter(i);
+					resetCitrin(null);
 
+					firstRun = true;
 				}
 				else {
 					if(controller.isInterpreting()){
@@ -795,7 +792,6 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 				}
 	}
 
-
 	public void save(JTextComponent textComponent, boolean saveAs){//, boolean saveToCurrentFile) {
 
 
@@ -839,7 +835,6 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 			}
 	}
 }
-
 	
 	// An action that opens an existing file
 	public class OpenAction extends AbstractAction implements UndoableEditListener{
@@ -913,19 +908,13 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			save(editor, true);
-			Interpreter i;
 			// run interpreter on currentCppSourceFile
 
 			// Start interpreter in new thread
 			// TODO: hmmmm is this the best way
 			synchronized(controller){
 				if(!controller.isInterpreting()){
-					SymbolTableNotifier stab = new SymbolTableNotifier(); 
-					stab.addObserver( tabbedPane3 );
-					controller.clearConsole();
-					controller.setInterpretingStart();
-					new Thread(i = new Interpreter(controller,currentCppSourceFile,-1, stab)).start();
-					controller.addInterpreter(i);
+					resetCitrin(null);
 				}
 				else{
 					controller.continueRun();
@@ -935,7 +924,6 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 	}
 
 	// An action that runs the interpreter on all the contents of the current cpp source file
-
 	class StepAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
@@ -949,15 +937,10 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		public void actionPerformed(ActionEvent e) {
 			// run interpreter on currentCppSourceFile
 			save(editor, true);
-			Interpreter i;
 			synchronized(controller){
-				SymbolTableNotifier stab = new SymbolTableNotifier(); 
-				stab.addObserver( tabbedPane3 );
+
 				if(!controller.isInterpreting()){
-					controller.clearConsole();
-					controller.setInterpretingStart();
-					new Thread(i = new Interpreter(controller,currentCppSourceFile,1, stab)).start();
-					controller.addInterpreter(i);
+					resetCitrin(null);
 				}
 				else{
 					controller.addSteps(1);
@@ -968,7 +951,6 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 	}
 	
-
 	class RunNumOfStepsAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
@@ -986,21 +968,21 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 			JOptionPane dialog = new JOptionPane();
 			int input = Integer.parseInt(dialog.showInputDialog("Enter number of steps to run"));
 			input = input-1;
-			Interpreter i;
 			synchronized(controller){
+					Interpreter i;
 					SymbolTableNotifier stab = new SymbolTableNotifier(); 
 					stab.addObserver( tabbedPane3 );
 					controller.clearConsole();
 					controller.setInterpretingStart();
 					new Thread(i = new Interpreter(controller,currentCppSourceFile,1, stab)).start();
 					controller.addInterpreter(i);
+
 					controller.addSteps(input);
 			}
 
 		}
 
 	}
-	
 	
 	class RunBreakPoint extends AbstractAction {
 		JTextComponent display;
@@ -1017,15 +999,9 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		save(editor, true);
 		JOptionPane dialog = new JOptionPane();
 		int input = Integer.parseInt(dialog.showInputDialog("Run to which line"));
-		Interpreter i;
 			synchronized(controller){
 				if(!controller.isInterpreting()){
-					SymbolTableNotifier stab = new SymbolTableNotifier(); 
-					stab.addObserver( tabbedPane3 );
-					controller.clearConsole();
-					controller.setInterpretingStart();
-					new Thread(i = new Interpreter(controller,currentCppSourceFile,-1, stab, input)).start();
-					controller.addInterpreter(i);
+					resetCitrin(input);
 				}
 				else{
 					controller.runToBreak(input);
@@ -1053,6 +1029,24 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		}
 
 	}
-	
+
+	void resetCitrin(Integer breakPoint)
+	{
+		SymbolTableNotifier stab = new SymbolTableNotifier(); 
+		stab.addObserver( tabbedPane3 );
+		controller.clearConsole();
+		controller.setInterpretingStart();
+		Interpreter i = new Interpreter(controller,currentCppSourceFile,-1, stab);
+		controller.addInterpreter(i);
+
+		Thread t = new Thread(i);
+		CitrinInterrupter.getInstance().addThread(t);
+
+		t.start();
+
+
+		if (breakPoint!=null)
+			i.setBreakPoint(breakPoint);
+	}
 
 }

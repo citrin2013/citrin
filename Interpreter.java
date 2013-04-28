@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.FileOutputStream;
 import java.io.FileDescriptor;
+import java.lang.Thread;
 
 
 //TODO should derive functions and vars from same base class to handle functions as parameters?
@@ -105,6 +106,10 @@ public class Interpreter implements Runnable {
 		boolean returnValue = true;
 
 		// Run Interpreter on given cpp file
+		//
+		// If Interpreter is not running with Console, then it spits out
+		// its interpretation to stdout, which is redirected and captured 
+		// in this function to print out later
 		SymbolTableNotifier stab = new SymbolTableNotifier(); 
 		Interpreter i = new Interpreter(currentCppSourceFile,-1, stab);
 		Interpretation result = null;
@@ -112,7 +117,12 @@ public class Interpreter implements Runnable {
 			result = i.runAll();
 		} catch (IOException e) {
 			System.out.println("IOException with the file " + currentCppSourceFile);
+		} catch (Exception e) {
+			System.err.println("Exception in Interpreter.test()");
+			// e.printStackTrace();
 		}
+
+
 		if (result == null ) {
 			returnValue = false;
 		}
@@ -158,20 +168,6 @@ public class Interpreter implements Runnable {
 			}
         }
 
-		/*
-		String currentCppSourceFile = "";
-
-		if ( args.length < 1 || 1 < args.length ) {
-			System.out.println("Usage : $ cmd cppfile");	
-			System.out.println("Number of arguments must be one.");	
-			System.exit( 1 );
-		}
-		else {
-			currentCppSourceFile = args[0];
-			System.out.println("Running on " + currentCppSourceFile);	
-		}
-		*/
-
 	}
 
 
@@ -214,6 +210,14 @@ public class Interpreter implements Runnable {
 		this.symbolTable = stab;
 		breakPoint = breakLine;
 	}
+
+	// -----------------------------------------------------------------------
+	// Config
+	void setBreakPoint(int breakLine)	
+	{
+		breakPoint = breakLine;
+	}
+
 	// -----------------------------------------------------------------------
 	// Interpreter
 
@@ -224,6 +228,8 @@ public class Interpreter implements Runnable {
 		try {
 			runAll();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
@@ -277,7 +283,8 @@ public class Interpreter implements Runnable {
 		} catch (StopException e) {
 		} catch (SyntaxError e) {
 			controller.consoleOut("Syntax Error: "+e.toString()+" at line: " + e.getLine()+'\n');
-		}
+		} 
+
 		symbolTable.popScope();
 		symbolTable.clear();
 
@@ -469,7 +476,7 @@ public class Interpreter implements Runnable {
 
 
 	//TODO need to allow variables to be declared in a block and not accessible outside it!!!
-	private boolean check_block(){
+	private boolean check_block() {
 		int block = 0;
 		boolean syntaxGood = true;
 
@@ -581,7 +588,7 @@ public class Interpreter implements Runnable {
 	}
 
 	//TODO add int a(5) declaration option
-	private void decl_var() throws StopException, SyntaxError{
+	private void decl_var() throws StopException, SyntaxError {
 		token = lexer.get_token(); /* get type */
 		keyword type = token.key;
 		var_type value;
@@ -637,7 +644,7 @@ public class Interpreter implements Runnable {
 		}
 	}
 
-	void decl_arr(var_type var, SymbolLocation loc) throws SyntaxError, StopException{
+	void decl_arr(var_type var, SymbolLocation loc) throws SyntaxError, StopException {
 		boolean mustInitialize = false;
 
 		ArrayList<Integer> bounds = getArrayBounds();
@@ -751,7 +758,7 @@ public class Interpreter implements Runnable {
 	}
 
 	// function to get the bounds on an array, next token should be first '['
-	ArrayList<Integer> getArrayBounds() throws SyntaxError, StopException{
+	ArrayList<Integer> getArrayBounds() throws SyntaxError, StopException {
 		ArrayList<Integer> bounds = new ArrayList<Integer>();
 		
 		token = lexer.get_token();
@@ -797,7 +804,7 @@ public class Interpreter implements Runnable {
 	}
 	
 	
-	void exec_while() throws StopException, SyntaxError{
+	void exec_while() throws StopException, SyntaxError {
 		var_type cond;
 		int cond_index;
 		return_state r;
@@ -851,7 +858,7 @@ public class Interpreter implements Runnable {
 		return syntaxGood;
 	}
 
-	void exec_if() throws StopException, SyntaxError{
+	void exec_if() throws StopException, SyntaxError {
 		var_type cond;
 		return_state r;
 		cond = evalOrCheckExpression(false); //evaluate the conditional statement
@@ -951,7 +958,7 @@ public class Interpreter implements Runnable {
 		lexer.putback();
 }
 
-	void exec_do() throws StopException, SyntaxError{
+	void exec_do() throws StopException, SyntaxError {
 			var_type cond;
 			return_state r;
 			int do_index;
@@ -1195,7 +1202,7 @@ public class Interpreter implements Runnable {
 	/* calls the function whose name is in token, 
 	 index should be after the function name (at the open parenthesis, 
 	 before the arguments to the function)*/
-	var_type call(String func_name) throws StopException, SyntaxError{
+	var_type call(String func_name) throws StopException, SyntaxError {
 		int loc, temp;
 		ret_value = null;
 		ArrayList<var_type> args, params;
@@ -1237,13 +1244,16 @@ public class Interpreter implements Runnable {
 		if(func_table[func_index].ret_type = keyword.VOID){
 			return null;
 		}*/
+		
 		var_type v = new var_type();
 		v.v_type = func_table[func_index].ret_type;
+
+		// TODO : NullPointerException is thrown here
 		v.assignVal(ret_value);
 		return v;
 	}
 
-	var_type checkCall(String func_name) throws StopException, SyntaxError{
+	var_type checkCall(String func_name) throws StopException, SyntaxError {
 		ret_value = null;
 		ArrayList<var_type> args;
 		args = get_args();
@@ -1286,7 +1296,7 @@ public class Interpreter implements Runnable {
 	}
 
 	// get arguments from function call
-	ArrayList<var_type> get_args() throws StopException, SyntaxError{
+	ArrayList<var_type> get_args() throws StopException, SyntaxError {
 		var_type value; 
 		ArrayList<var_type> args = new ArrayList<var_type>();
 
@@ -1309,7 +1319,7 @@ public class Interpreter implements Runnable {
 		return args;
 	}
 
-	ArrayList<var_type> get_params() throws SyntaxError{
+	ArrayList<var_type> get_params() throws SyntaxError {
 		var_type p;
 		ArrayList<var_type> params = new ArrayList<var_type>();
 
@@ -1360,7 +1370,7 @@ public class Interpreter implements Runnable {
 	}
 
 	//return from a function. sets ret_value to the returned value
-	void func_ret() throws StopException, SyntaxError{
+	void func_ret() throws StopException, SyntaxError {
 		var_type value = null;
 		//get return value (if any)
 		value = evalOrCheckExpression(false);
@@ -1380,7 +1390,7 @@ public class Interpreter implements Runnable {
 		waitIfNeeded();
 	}
 
-	boolean check_func_ret(){
+	boolean check_func_ret() {
 		boolean syntaxGood = true;
 		var_type value = null;
 		//get return value (if any)
@@ -1530,7 +1540,7 @@ public class Interpreter implements Runnable {
 		if(checkOnly)
 			return exp.check_expr(commasAreDelimiters);
 		else
-			return exp.eval_exp(commasAreDelimiters);
+			return exp.try_eval_exp(commasAreDelimiters);
 	}
 
 	public synchronized void stop(){

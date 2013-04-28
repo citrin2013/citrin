@@ -1,5 +1,6 @@
 import java.lang.Double;
 import java.util.ArrayList;
+import java.lang.Exception;
 
 
 //TODO: ST stb = (sta, sta), stc; would call comma op but ST stb = sta, sta, stc; would repeatedly declare. 
@@ -32,6 +33,18 @@ public class ExpressionEvaluator {
 		symbolTable = s;
 	}
 
+	//entry point with try catch block
+	public var_type try_eval_exp(boolean commasAreDelimiters) throws StopException
+	{
+		var_type v = new var_type();
+		try {
+			v = eval_exp( commasAreDelimiters );
+		} catch(Exception e) {
+			e.printStackTrace();	
+		}
+		return v;
+	}
+
 	//entry point into parser
 	public var_type eval_exp(boolean commasAreDelimiters)  throws StopException, SyntaxError {
 	  checkOnly = false;
@@ -50,7 +63,7 @@ public class ExpressionEvaluator {
 	}
 
 	// process comma operator
-	private var_type eval_exp0()  throws StopException, SyntaxError {
+	private var_type eval_exp0()  throws StopException, SyntaxError{
 	  var_type result;
 	  result = eval_exp1();;
 	  String op = token.value;

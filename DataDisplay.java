@@ -150,7 +150,7 @@ public class DataDisplay extends JPanel implements CitrinObserver { // implement
 		table.setModel( new DefaultTableModel(data,columnNames) );
 		tables.add( table );
 		table.setPreferredScrollableViewportSize(dim);
-        table.setFillsViewportHeight(true);
+        // table.setFillsViewportHeight(true);
         table.getColumnModel().getColumn(0).setPreferredWidth(50);
 
         //Create the scroll pane and add the table to it.
