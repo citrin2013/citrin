@@ -94,7 +94,7 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 		Iterator<CitrinObserver> i = observers.iterator();
 		CitrinObserver o;
 		while (i.hasNext()) {
-			o = (CitrinObserver) i.next();
+			o = i.next();
 			if (o != null ) // TODO : ugly
 				o.update(this, arg); // HERE this requires Observable,Object by Observer::update
 		}

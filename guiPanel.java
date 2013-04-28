@@ -417,6 +417,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 	}
 	
+	@SuppressWarnings("serial")
 	class RunTimed  extends AbstractAction{
 		JTextComponent display;
 		String interpretation = "";
@@ -655,6 +656,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 //		 of if multiple editing session should be implemented.
 
 	// An action to simply exit the app
+	@SuppressWarnings("serial")
 	class ExitAction extends AbstractAction {
 
 		public ExitAction() {
@@ -731,6 +733,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 	}*/
 
 	// An action that saves the document to a file : Supports Save and SaveAs actions 
+	@SuppressWarnings("serial")
 	class SaveAction extends AbstractAction {
 		// PossibleBugSource : Saving to class member variable currentCppSourceFile
 
@@ -896,6 +899,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 	}
 	
 	// An action that runs the interpreter on all the contents of the current cpp source file
+	@SuppressWarnings("serial")
 	class RunAllAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
@@ -924,6 +928,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 	}
 
 	// An action that runs the interpreter on all the contents of the current cpp source file
+	@SuppressWarnings("serial")
 	class StepAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
@@ -951,6 +956,8 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 	}
 	
+	
+	@SuppressWarnings("serial")
 	class RunNumOfStepsAction extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
@@ -984,6 +991,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 	}
 	
+	@SuppressWarnings("serial")
 	class RunBreakPoint extends AbstractAction {
 		JTextComponent display;
 		String interpretation = "";
@@ -1010,6 +1018,8 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		}
 	}
 	
+
+	@SuppressWarnings("serial")
 	class StopRunAction extends AbstractAction {
 
 

@@ -1,4 +1,5 @@
 
+@SuppressWarnings("serial")
 public class SyntaxError extends Exception{
 	private String str;
 	private int line;

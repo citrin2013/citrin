@@ -1,4 +1,4 @@
-
+@SuppressWarnings("serial")
 public class StopException extends Exception {
 	private int num;
 	

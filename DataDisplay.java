@@ -67,6 +67,7 @@ import javax.swing.Box;
 import javax.swing.JLabel;
 import java.awt.BorderLayout;
 
+@SuppressWarnings("serial")
 public class DataDisplay extends JPanel implements CitrinObserver { // implements Observer {
 
 	boolean DEBUG = true;

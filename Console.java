@@ -1,6 +1,7 @@
 import javax.swing.*;
 import javax.swing.text.*;
 
+@SuppressWarnings("serial")
 public class Console extends JTextArea implements CitrinObserver {
 
 	Document doc; 
