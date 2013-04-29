@@ -93,7 +93,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 	//TODO: need functionality to keep track of what action was just done
 
 	//Menu Items for Help
-	private JMenuItem tutorial;
+	//private JMenuItem tutorial;
 
 	private TextLineNumber tln;
 	
@@ -109,7 +109,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		JMenu fileMenu = new JMenu("File");
 		JMenu editMenu = new JMenu("Edit");
 		//JMenu styleMenu = new JMenu("Style");
-		JMenu helpMenu = new JMenu("Help");
+		//JMenu helpMenu = new JMenu("Help");
 		JMenu runMenu = new JMenu("Run");
 		currentCppSourceFile = null;
 		
@@ -119,7 +119,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 		
 		//help menu
-		tutorial = new JMenuItem("Tutorial");
+	//	tutorial = new JMenuItem("Tutorial");
 		
 		
 		
@@ -129,9 +129,9 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		topBar.add(editMenu);
 		topBar.add(runMenu);
 		//topBar.add(styleMenu);
-		topBar.add(helpMenu);
+	//	topBar.add(helpMenu);
 
-		helpMenu.add(tutorial);
+		//helpMenu.add(tutorial);
 
 		JPanel	myPanel = new JPanel();
 
