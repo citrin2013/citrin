@@ -480,11 +480,22 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 			//if(s.contains(".")){
 				
 			//}
-			
+			try{
 			double time = Double.parseDouble(JOptionPane.showInputDialog("Enter number of seconds:"));
-			time = time*1000;
-			long s = (long) time;
-			run(s);
+			if(time > 0 && time <= 100){
+				time = time*1000;
+				long s = (long) time;
+				run(s);
+			}
+			else{
+				JOptionPane.showMessageDialog(null, "You must enter a number between 0 and 100");
+			}
+			
+			}
+			catch(NumberFormatException e){
+				JOptionPane.showMessageDialog(null, "You must enter a number.\n");
+			}
+			
 		}
 	}
 	@Override
