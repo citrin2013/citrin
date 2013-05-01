@@ -459,7 +459,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 				}
 			synchronized(controller) {
 				if(!controller.isInterpreting() && !firstRun){
-					resetCitrin(null);
+					resetCitrin(1);
 
 					firstRun = true;
 				}
