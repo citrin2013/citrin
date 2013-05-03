@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -58,7 +59,7 @@ import javax.swing.text.Highlighter.Highlight;
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoManager;
 
-public class guiPanel extends JPanel	 implements UndoableEditListener {
+public class guiPanel extends JPanel	 implements UndoableEditListener, ActionListener {
 
 	// C++ source file this application has the focus on currently
 	// When tab focus changes this variable should refer to the file the tab contains
@@ -93,7 +94,8 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 	//TODO: need functionality to keep track of what action was just done
 
 	//Menu Items for Help
-	//private JMenuItem tutorial;
+	private JMenuItem tutorial;
+	private JMenuItem about;
 
 	private TextLineNumber tln;
 	
@@ -109,7 +111,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		JMenu fileMenu = new JMenu("File");
 		JMenu editMenu = new JMenu("Edit");
 		//JMenu styleMenu = new JMenu("Style");
-		//JMenu helpMenu = new JMenu("Help");
+		JMenu helpMenu = new JMenu("Help");
 		JMenu runMenu = new JMenu("Run");
 		currentCppSourceFile = null;
 		
@@ -119,9 +121,8 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 		
 		//help menu
-	//	tutorial = new JMenuItem("Tutorial");
-		
-		
+		tutorial = new JMenuItem("Interpret Your Code");
+		about = new JMenuItem("About CITRIN");
 		
 		
 		//add the menus to the menu bar
@@ -129,9 +130,10 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		topBar.add(editMenu);
 		topBar.add(runMenu);
 		//topBar.add(styleMenu);
-	//	topBar.add(helpMenu);
+		topBar.add(helpMenu);
 
-		//helpMenu.add(tutorial);
+		helpMenu.add(tutorial);
+		helpMenu.add(about);
 
 		JPanel	myPanel = new JPanel();
 
@@ -233,7 +235,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 	//	program.setName("*Program");
 
 		//tabbedPane2.addTab("Console", null);
-		tabbedPane2.add("Console", scrollPane2);
+		tabbedPane2.add("Interpretation", scrollPane2);
 
 		//tabbedPane2.add("copy.gif", new ImageIcon("copy.gif"), 0);
 
@@ -358,7 +360,8 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 		//redo.addActionListener(this);
 		//jb_undo.addActionListener(this);
 		//jb_redo.addActionListener(this);
-		
+		tutorial.addActionListener(this);
+		about.addActionListener(this);
 
 		runMenu.add(new RunTimed("RunTimed", console));
 	}
@@ -1072,6 +1075,42 @@ public class guiPanel extends JPanel	 implements UndoableEditListener {
 
 		if (breakPoint!=null)
 			i.setBreakPoint(breakPoint);
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent arg0) {
+		// TODO Auto-generated method stub
+		if(arg0.getSource() == tutorial){
+			String message = "To run your code:\n " +
+					"RunAll: This option will run through your entire code. \nThe hisotry of the interpretation will be shown " +
+					"in the 'Interpretation' window.\n \nRunStep: This option will run through your code line by line. The " +
+					"current line will be highlighted.\nConditional statements, such as if statements, while loops, and " +
+					"for loops will be highlighted in green if true and red if false.\n\n" +
+					"Run Multiple Steps: This option will allow you to enter how many steps you would like the interpreter\n" +
+					"to run through. \n\n" +
+					"Run to Breakpoint: You will enter the line at which you wish the interpreter to stop. \nCITRIN will then " +
+					"interpret your code up to and including the line which you have entered. The current state of the \n" +
+					"variables or arrays will be displayed in 'Variables.'\n\n" +
+					"RunTimed: This option will allow you to enter a time of seconds between 0 and 100 (including 100). \n" +
+					"CITRIN will then step through your program and will wait for however long you have specified in between\n " +
+					"each step.\n\n" +
+					"Terminate: This button will terminate the current interpretation run.\n \n" +
+					"'Interpretation' window: This window shows the history of the code's interpretation. \n" +
+					"Syntax errors are also displayed in this window.\n\n" +
+					"'Variables' display: This window displays the current state of your variables and arrays\n" +
+					"in your code and will update as your code is run. A new box will open for each new scope.\n";
+
+			JOptionPane.showMessageDialog(null, message);
+		}
+		else if(arg0.getSource() == about){
+			String message = "CITRIN: C++ Interactive Interpreter\n" +
+					"Chris Salls, Jessica Hall, Shaun Davidson, Yuta Matsumoto\n\n" +
+					"CS 426 Senior Project in Computer Science 2012/2013\n" +
+					"Department of Computer Science and Engineering,\nUniversity of Nevada, Reno\n\n" +
+					"Advised by: Dr. Michael Leverington and Dr. Sergiu Dascalu";
+
+			JOptionPane.showMessageDialog(null, message);
+		}
 	}
 
 }
