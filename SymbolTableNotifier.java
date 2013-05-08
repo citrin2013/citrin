@@ -164,6 +164,9 @@ class SymbolTableNotifier extends SymbolTable implements CitrinObservable {
 	
 	// function to notify when a var is updated
 	void updatedVar(int address){
+		if(address < 0)
+			return;
+		
 		assignedSymbol = varStack.get(address);
 		while(assignedSymbol.data.memberOf!=null){
 			assignedSymbol = assignedSymbol.data.memberOf;

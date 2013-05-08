@@ -248,6 +248,7 @@ public class ExpressionEvaluator {
 	  }
 	  else{
 		  //Restore context to before 3rd term
+		  checkOnly = tempCheck;
 		  lexer.index = indexBeforeTerm3;
 		  token = tokenBeforeTerm3.clone();
 		  ifFalse = eval_exp3();

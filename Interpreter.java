@@ -1763,6 +1763,7 @@ public class Interpreter implements Runnable {
 	}
 
 	public synchronized void continueRun(){
+		breakPoint = -1;
 		numStepsToRun = -1;
 		notifyAll();
 	}

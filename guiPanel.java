@@ -16,6 +16,7 @@ import java.io.*;
 import java.io.FileWriter.*;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Stack;
@@ -58,6 +59,12 @@ import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
 import javax.swing.text.Highlighter.Highlight;
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoManager;
+
+class resourceLoader{
+	static URL get(String name){
+		return resourceLoader.class.getResource(name);
+	}
+}
 
 public class guiPanel extends JPanel	 implements UndoableEditListener, ActionListener {
 
@@ -161,30 +168,30 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 		// Make buttons look nicer
 		Action a;
 		a = area.getActionMap().get(DefaultEditorKit.cutAction);
-		a.putValue(Action.SMALL_ICON, new ImageIcon("Images/edit_cut.png"));
+		a.putValue(Action.SMALL_ICON, new ImageIcon(resourceLoader.get("Images/edit_cut.png")));
 		a.putValue(Action.NAME, "Cut");
 
 		a = area.getActionMap().get(DefaultEditorKit.copyAction);
-		a.putValue(Action.SMALL_ICON, new ImageIcon("Images/copy.png"));
+		a.putValue(Action.SMALL_ICON, new ImageIcon(resourceLoader.get("Images/copy.png")));
 		a.putValue(Action.NAME, "Copy");
 
 		a = area.getActionMap().get(DefaultEditorKit.pasteAction);
-		a.putValue(Action.SMALL_ICON, new ImageIcon("Images/paste.png"));
+		a.putValue(Action.SMALL_ICON, new ImageIcon(resourceLoader.get("Images/paste.png")));
 		a.putValue(Action.NAME, "Paste");
 
 		a = area.getActionMap().get(DefaultEditorKit.selectAllAction);
 		a.putValue(Action.NAME, "Select All");
 
 		Action copyAction = new DefaultEditorKit.CopyAction();
-		copyAction.putValue(Action.SMALL_ICON, new ImageIcon("Images/copy.png"));
+		copyAction.putValue(Action.SMALL_ICON, new ImageIcon(resourceLoader.get("Images/copy.png")));
 		copyAction.putValue(Action.NAME, ""); 
 
 		Action pasteAction = new DefaultEditorKit.PasteAction();
-		pasteAction.putValue(Action.SMALL_ICON, new ImageIcon("Images/paste.png"));
+		pasteAction.putValue(Action.SMALL_ICON, new ImageIcon(resourceLoader.get("Images/paste.png")));
 		pasteAction.putValue(Action.NAME, "");
 
 		Action cutAction = new DefaultEditorKit.CutAction();
-		cutAction.putValue(Action.SMALL_ICON, new ImageIcon("Images/edit_cut.png"));
+		cutAction.putValue(Action.SMALL_ICON, new ImageIcon(resourceLoader.get("Images/edit_cut.png")));
 		cutAction.putValue(Action.NAME, "");
 
 		// To Do: Get style menu working
@@ -427,7 +434,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 		long now;
 		long mTimeElapsed = System.currentTimeMillis();
 		public RunTimed(String label, JTextComponent display) {
-			super("RunTimed", new ImageIcon("Images/run.png"));
+			super("RunTimed", new ImageIcon(resourceLoader.get("Images/run.png")));
 			this.display = display;
 		}
 		
@@ -469,6 +476,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 				else {
 					if(controller.isInterpreting()){
 					controller.addSteps(1);
+					firstRun = true;
 					}
 
 				}
@@ -607,7 +615,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 		private static final long serialVersionUID = 1L;
 
 		public UndoAction(String label){
-			super(label, new ImageIcon("Images/undo.png"));
+			super(label, new ImageIcon(resourceLoader.get("Images/undo.png")));
 		}
 
 		@Override
@@ -625,7 +633,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 		private static final long serialVersionUID = 1L;
 
 		public RedoAction(String label){
-			super(label, new ImageIcon("Images/redo.png"));
+			super(label, new ImageIcon(resourceLoader.get("Images/redo.png")));
 		}
 
 		@Override
@@ -758,7 +766,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 				// textComponent		... the view and model that keeps and show the text data
 				// saveToCurrentFile	... false => prompts the user for the file, true => save to curent file
 				public SaveAction(String label, JTextComponent textComponent, boolean saveAs){//, boolean saveToCurrentFile) {
-					super(label, new ImageIcon("Images/save.png"));
+					super(label, new ImageIcon(resourceLoader.get("Images/save.png")));
 					this.textComponent = textComponent;
 					saveToCurrentFile = saveAs;
 				//	this.saveToCurrentFile = saveToCurrentFile;
@@ -863,7 +871,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 
 		// textComponent ... this action opens a file into this textComponent
 		public OpenAction(String label, JTextComponent textComponent) {
-			super(label, new ImageIcon("Images/open_folder_green.png"));
+			super(label, new ImageIcon(resourceLoader.get("Images/open_folder_green.png")));
 			this.textComponent = textComponent;
 		}
 
@@ -871,6 +879,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 		// the text component.
 		public void actionPerformed(ActionEvent ev) {
 			JFileChooser chooser = new JFileChooser();
+			chooser.setCurrentDirectory(new File("."));
 			if (chooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION)
 			return;
 			File file = chooser.getSelectedFile();
@@ -919,7 +928,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 		String interpretation = "";
 		
 		public RunAllAction(String label, JTextComponent display) {
-			super(label, new ImageIcon("Images/run.png"));
+			super(label, new ImageIcon(resourceLoader.get("Images/run.png")));
 			this.display = display;
 		}
 
@@ -948,7 +957,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 		String interpretation = "";
 
 		public StepAction(String label, JTextComponent display) {
-			super(label, new ImageIcon("Images/step.gif"));
+			super(label, new ImageIcon(resourceLoader.get("Images/step.gif")));
 			this.display = display;
 		}
 
@@ -1037,7 +1046,7 @@ public class guiPanel extends JPanel	 implements UndoableEditListener, ActionLis
 
 
 		public StopRunAction() {
-			super("", new ImageIcon("Images/stop.png"));
+			super("", new ImageIcon(resourceLoader.get("Images/stop.png")));
 
 		}
 

@@ -199,7 +199,7 @@ public class SymbolTable {
 		for(int i=0;i<arrayData.size();i++){
 			currentScope.highIndex++;
 			varStack.add(arrayData.get(i));
-			varStack.get(i).data.address = currentScope.highIndex-1;
+			arrayData.get(i).data.address = currentScope.highIndex-1;
 		}
 
 		//return diagnosis

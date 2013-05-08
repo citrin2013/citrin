@@ -112,6 +112,16 @@ public class Lexer {
 					index++;
 				index+=2;
 			}
+			
+			// skip comments
+			if( index+1 < prog.length && prog[index] == '/' && prog[index+1] == '/'){
+				done = false;
+				index += 2;
+				while (prog[index]!='\n' && prog[index]!='\r')
+					index++;
+				index++;
+			}
+			
 
 		}
 
